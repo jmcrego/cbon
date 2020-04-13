@@ -100,7 +100,7 @@ class Dataset():
                 continue
             if i+2 >= len(toks):
                 continue
-            ngram.append(toks[i+2])#['34', '48', '12']
+            ngram.append(str(toks[i+2]))#['34', '48', '12']
             trigram = self.vocab[' '.join(ngram)] #trigram = 113
             if trigram == self.idx_unk:
                 continue
