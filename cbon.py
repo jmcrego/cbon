@@ -33,7 +33,7 @@ def do_preprocess(args):
             opts = yaml.load(yamlfile, Loader=yaml.FullLoader)
             with open(args.name + '.token', 'w') as ofile:
                 yaml.dump(opts, ofile)
-    logging.info('built tokenizer config file')
+    logging.info('written tokenizer config file')
     ###
     ### build name.vocab
     ###
@@ -51,7 +51,7 @@ def do_train(args):
     model, n_steps = load_model(args.name, vocab)
     if model is None:
         logging.info('start model from scratch')
-        model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_unk)
+        model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_pad)
     if args.cuda:
         model.cuda()
 
@@ -97,7 +97,7 @@ def do_word(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.embedding_size, args.pooling, args.voc_maxn = read_params(args)
-    model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_unk)
+    model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_pad)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(args.beta1,args.beta2), eps=args.eps)
     n_steps, model, optimizer = load_model_optim(args.name, args.embedding_size, vocab, model, optimizer)
     if args.cuda:
@@ -158,7 +158,7 @@ def do_sent(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.embedding_size, args.pooling, args.voc_maxn = read_params(args)
-    model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_unk)
+    model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_pad)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(args.beta1,args.beta2), eps=args.eps)
     n_steps, model, optimizer = load_model_optim(args.name, args.embedding_size, vocab, model, optimizer)
     if args.cuda:
