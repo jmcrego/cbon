@@ -16,7 +16,7 @@ download(){
 DIR=$PWD/raw
 
 #download
+#python3 cbon.py -name ex1 -mode preprocess -data $DIR/\*.en -voc_maxn 3 -voc_minf 10 -voc_maxs 500000 -tok_conf $DIR/token_options -log_file stderr
 #
-python3 cbon.py -name ex1 -mode preprocess -data $DIR/\*.en -voc_maxn 3 -voc_minf 10 -voc_maxs 500000 -tok_conf $DIR/token_options -log_file stderr
-#CUDA_VISIBLE_DEVICES=$gpu python3 cbon.py -name ex1 -mode train -data $DIR/news-commentary-v14.en -skip_subsampling -embedding_size 100 -batch_size 1024 -cuda -log_file stderr
+CUDA_VISIBLE_DEVICES=$gpu python3 cbon.py -name ex1 -mode train -data $DIR/\*.en -skip_subsampling -embedding_size 100 -batch_size 1024 -cuda -log_file stderr
 
