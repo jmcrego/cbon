@@ -1,4 +1,5 @@
 #!/bin/bash
+gpu=$1
 
 download(){
     mkdir -p $DIR
@@ -17,5 +18,5 @@ DIR=$PWD/raw
 #
 download
 #python3 cbon.py -name ex1 -mode preprocess -data $DIR/news-commentary-v14.en -voc_maxn 3 -voc_minf 10 -tok_conf $DIR/token_options -log_file stderr
-#python3 cbon.py -name ex1 -mode train -data $DIR/news-commentary-v14.en -log_file stderr -skip_subsampling -embedding_size 100 -batch_size 8
+#CUDA_VISIBLE_DEVICES=$gpu python3 cbon.py -name ex1 -mode train -data $DIR/news-commentary-v14.en -skip_subsampling -embedding_size 100 -batch_size 1024 -cuda -log_file stderr
 
