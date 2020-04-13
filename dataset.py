@@ -67,6 +67,32 @@ class Dataset():
         for i in range(first_idx, last_idx+1):
             if i == center:
                 continue
+            ctx.append(toks[i]) #toks[i] = 34
+            msk.append(True)
+            ngrams = [str(toks[i])] #ngrams ['34']
+
+            for n in range(1,self.voc_maxn):
+                if i+n == center:
+                    break
+                if i+n >= len(toks):
+                    break
+                if toks[i+n] == self.idx_unk:
+                    break
+
+                ngrams.append(str(toks[i+n])) #ngrams ['34', '28']
+                ngram = self.vocab[' '.join(ngrams)] #ngram = 124
+                if ngram == self.idx_unk:
+                    break
+
+                ctx.append(ngram)
+                msk.append(True)
+
+        return ctx, msk
+
+'''
+        for i in range(first_idx, last_idx+1):
+            if i == center:
+                continue
             ###############
             ### unigram ###
             ###############
@@ -108,6 +134,7 @@ class Dataset():
             msk.append(True)
 
         return ctx, msk
+'''
 
     def get_negatives(self, wrd, ctx):
         neg = []

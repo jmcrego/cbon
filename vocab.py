@@ -63,9 +63,7 @@ class Vocab():
                             self.tok_to_frq[ngram] += 1
 
             f.close()
-        unigrams = 0
-        bigrams = 0
-        trigrams = 0
+        ngrams = defaultdict(int)
         ### build vocab
         self.tok_to_idx[self.str_pad] = self.idx_pad #0
         self.idx_to_tok.append(self.str_pad)        
@@ -77,21 +75,17 @@ class Vocab():
             if frq < min_freq:
                 break
             WRD = wrd.split(' ')
+            ngrams[len(WRD)] += 1
             if len(WRD) == 1:
                 self.tok_to_idx[wrd] = len(self.idx_to_tok)
                 self.idx_to_tok.append(wrd)
-                unigrams += 1
             else:
                 idx = [str(self.tok_to_idx[w]) for w in WRD]
                 idx = ' '.join(idx)
                 self.tok_to_idx[idx] = len(self.idx_to_tok)
                 self.idx_to_tok.append(idx)
-                if len(WRD) == 2:
-                    bigrams += 1
-                elif len(WRD) == 3:
-                    trigrams += 1
 
-        logging.info('built vocab ({} entries) unigrams={} bigrams={} trigrams={} from {}'.format(len(self.idx_to_tok),unigrams, bigrams, trigrams, files))
+        logging.info('built vocab ({} entries) ngrams {} from {}'.format(len(self.idx_to_tok),ngrams,files))
 
     def __len__(self):
         return len(self.idx_to_tok)
