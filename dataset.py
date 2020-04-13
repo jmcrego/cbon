@@ -89,53 +89,7 @@ class Dataset():
 
         return ctx, msk
 
-'''
-        for i in range(first_idx, last_idx+1):
-            if i == center:
-                continue
-            ###############
-            ### unigram ###
-            ###############
-            unigram = toks[i] #unigram = 34
-            ctx.append(unigram)
-            msk.append(True)
-            if unigram == self.idx_unk:
-                continue
-            ###############
-            ### bigram ####
-            ###############
-            if self.voc_maxn == 1:
-                continue
-            if i+1 == center:
-                continue
-            if i+1 >= len(toks):
-                continue
-            ngram = [str(toks[i])] #['34']
-            ngram.append(str(toks[i+1])) #['34', '48']
-            bigram = self.vocab[' '.join(ngram)] #bigram = 343
-            if bigram == self.idx_unk:
-                continue
-            ctx.append(bigram)
-            msk.append(True)
-            ###############
-            ### trigram ###
-            ###############
-            if self.voc_maxn == 2:
-                continue
-            if i+2 == center:
-                continue
-            if i+2 >= len(toks):
-                continue
-            ngram.append(str(toks[i+2]))#['34', '48', '12']
-            trigram = self.vocab[' '.join(ngram)] #trigram = 113
-            if trigram == self.idx_unk:
-                continue
-            ctx.append(trigram)
-            msk.append(True)
-
-        return ctx, msk
-'''
-
+        
     def get_negatives(self, wrd, ctx):
         neg = []
         while len(neg) < self.n_negs:
