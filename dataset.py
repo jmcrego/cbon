@@ -57,20 +57,20 @@ class Dataset():
         ctx = []
         msk = [] #mask of positive words (to indicate true words 1.0 or padding 0.0)
         if self.window > 0:
-            min_idx = max(center-self.window, 0)
-            max_idx = min(center+self.window, len(toks)-1)
+            first_idx = max(center-self.window, 0)
+            last_idx = min(center+self.window, len(toks)-1)
         else:
-            min_idx = 0
-            max_idx = len(toks)-1
+            first_idx = 0
+            last_idx = len(toks)-1
 
-        ### add all ngrams in [min_idx, max_idx] that do not contain center
-        for i in range(min_idx, max_idx+1):
+        ### add all ngrams in [first_idx, last_idx] which do not contain center
+        for i in range(first_idx, last_idx+1):
             if i == center:
                 continue
             ###############
             ### unigram ###
             ###############
-            unigram = toks[i]
+            unigram = toks[i] #unigram = 34
             ctx.append(unigram)
             msk.append(True)
             if unigram == self.idx_unk:
@@ -84,9 +84,9 @@ class Dataset():
                 continue
             if i+1 >= len(toks):
                 continue
-            ngram = [self.vocab[toks[i]]] #['the']
-            ngram.append(self.vocab[toks[i+1]])#['the', new']
-            bigram = self.vocab[' '.join(ngram)]
+            ngram = [str(toks[i])] #['34']
+            ngram.append(str(toks[i+1])) #['34', '48']
+            bigram = self.vocab[' '.join(ngram)] #bigram = 343
             if bigram == self.idx_unk:
                 continue
             ctx.append(bigram)
@@ -100,8 +100,8 @@ class Dataset():
                 continue
             if i+2 >= len(toks):
                 continue
-            ngram.append(self.vocab[toks[i+2]])#['the', 'new', 'age']
-            trigram = self.vocab[' '.join(ngram)]
+            ngram.append(toks[i+2])#['34', '48', '12']
+            trigram = self.vocab[' '.join(ngram)] #trigram = 113
             if trigram == self.idx_unk:
                 continue
             ctx.append(trigram)

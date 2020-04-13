@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
-#import yaml
 import sys
 import os
 import io
-#import math
-#import glob
-#import gzip
-#import random
-#import itertools
-#import pyonmttok
-#import numpy as np
 from collections import defaultdict
 from utils import open_read
 
@@ -31,16 +23,10 @@ class Vocab():
             sys.exit()
 
         f, is_gzip = open_read(file)
-        params_line = True
         for l in f:
             if is_gzip:
                 l = l.decode('utf8')
             tok = l.strip(' \n')
-            if params_line:
-                params_line = False
-                if tok.find('max_ngram=') == 0:
-                    self.max_ngram = int(tok[10:])
-                continue
             if tok not in self.tok_to_idx:
                 self.idx_to_tok.append(tok)
                 self.tok_to_idx[tok] = len(self.tok_to_idx)
@@ -49,7 +35,6 @@ class Vocab():
 
     def dump(self, file):
         f = open(file, "w")
-        f.write('max_ngram={}\n'.format(self.max_ngram))
         for tok in self.idx_to_tok:
             f.write(tok+'\n')
         f.close()
@@ -63,7 +48,7 @@ class Vocab():
             for l in f:
                 if is_gzip:
                     l = l.decode('utf8')
-                toks = []
+                toks = [] 
                 for tok in token.tokenize(l.strip(' \n')):
                     toks.append(tok)
                     for n in range(max_ngram): #if max_ngram is 2 then n is 0, 1
@@ -72,6 +57,10 @@ class Vocab():
                             self.tok_to_frq[ngram] += 1
 
             f.close()
+        unigrams = 0
+        bigrams = 0
+        trigrams = 0
+        ### build vocab
         self.tok_to_idx[self.str_pad] = self.idx_pad #0
         self.idx_to_tok.append(self.str_pad)        
         self.tok_to_idx[self.str_unk] = self.idx_unk #1
@@ -81,9 +70,22 @@ class Vocab():
                 break
             if frq < min_freq:
                 break
-            self.tok_to_idx[wrd] = len(self.idx_to_tok)
-            self.idx_to_tok.append(wrd)
-        logging.info('built vocab ({} entries) from {}'.format(len(self.idx_to_tok),files))
+            WRD = wrd.split(' ')
+            if len(WRD) == 1:
+                self.tok_to_idx[wrd] = len(self.idx_to_tok)
+                self.idx_to_tok.append(wrd)
+                unigrams += 1
+            else:
+                idx = [str(self.tok_to_idx[w]) for w in WRD]
+                idx = ' '.join(idx)
+                self.tok_to_idx[idx] = len(self.idx_to_tok)
+                self.idx_to_tok.append(idx)
+                if len(WRD) == 2:
+                    bigrams += 1
+                elif len(WRD) == 3:
+                    trigrams += 1
+
+        logging.info('built vocab ({} entries) unigrams={} bigrams={} trigrams={} from {}'.format(len(self.idx_to_tok),unigrams, bigrams, trigrams, files))
 
     def __len__(self):
         return len(self.idx_to_tok)
