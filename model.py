@@ -26,7 +26,6 @@ def save_model(pattern, model, n_steps, keep_last_n):
         'pooling': model.pooling,
         'embedding_size': model.ds,
         'vocab_size': model.vs,
-        'idx_pad': model.idx_pad,
         'n_steps': n_steps,
         'model': model.state_dict()
     }
@@ -51,10 +50,6 @@ def load_model(pattern, vocab):
         vocab_size = checkpoint['vocab_size']
         if vocab_size != len(vocab):
             logging.error('incompatible vocabulary size')
-            sys.exit()
-        idx_pad = checkpoint['idx_pad']
-        if idx_pad != vocab.idx_pad:
-            logging.error('incompatible idx_pad value')
             sys.exit()
         model = Word2Vec(vocab_size, embedding_size, pooling, idx_pad)
         model.load_state_dict(checkpoint['model'])
