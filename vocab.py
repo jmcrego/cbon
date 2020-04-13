@@ -9,10 +9,10 @@ from utils import open_read
 class Vocab():
 
     def __init__(self):
-        self.idx_unk = 0 
-        self.str_unk = '<unk>'
         self.idx_pad = 0 
         self.str_pad = '<pad>'
+        self.idx_unk = 1 
+        self.str_unk = '<unk>'
         self.tok_to_idx = {} 
         self.idx_to_tok = [] 
         self.max_ngram = 1
@@ -22,11 +22,16 @@ class Vocab():
             logging.error('missing {} file'.format(file))
             sys.exit()
 
+        first_line = True
         f, is_gzip = open_read(file)
         for l in f:
             if is_gzip:
                 l = l.decode('utf8')
             tok = l.strip(' \n')
+            if first_line:
+                self.max_ngram = int(tok)
+                first_line = False
+                continue
             if tok not in self.tok_to_idx:
                 self.idx_to_tok.append(tok)
                 self.tok_to_idx[tok] = len(self.tok_to_idx)
@@ -35,6 +40,7 @@ class Vocab():
 
     def dump(self, file):
         f = open(file, "w")
+        f.write(str(self.max_ngram)+'\n')
         for tok in self.idx_to_tok:
             f.write(tok+'\n')
         f.close()
