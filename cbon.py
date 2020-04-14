@@ -115,7 +115,7 @@ def do_sentence_vectors(args):
                 print('{}\t{}'.format(batch[2][i]+1, ' '.join(sentence) ))
 
 
-def do_word(args):
+def do_word_similarity(args):
     if not os.path.exists(args.name + '.token'):
         logging.error('missing {} file (run preprocess mode)'.format(args.name + '.token'))
         sys.exit()
@@ -129,10 +129,8 @@ def do_word(args):
     token = OpenNMTTokenizer(args.name + '.token')
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
-    args.embedding_size, args.pooling, args.voc_maxn = read_params(args)
-    model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_pad)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(args.beta1,args.beta2), eps=args.eps)
-    n_steps, model, optimizer = load_model_optim(args.name, args.embedding_size, vocab, model, optimizer)
+    args.voc_maxn = vocab.max_ngram
+    model, _ = load_model(args.name, vocab)
     if args.cuda:
         model.cuda()
 
@@ -148,32 +146,32 @@ def do_word(args):
     with torch.no_grad():
         model.eval()
         voc_i = [i for i in range(0,len(vocab))]
-        voc_e = model.Embed(voc_i,'iEmb')
+        voc_e = model.WordEmbed(voc_i,'iEmb')
         for batch in dataset:
-            #batch[0] batch_wrd
-            #batch[1] batch_isnt
-            #batch[2] batch_iwrd
-            wrd_i = batch[0]
-            wrd_e = model.Embed(wrd_i, 'iEmb') #.cpu().detach().numpy().tolist()
+            #[batch_snt, batch_msk, batch_ind]
+            for i_snt in range(len(batch[0])):
+                for i_wrd in range(len(batch[0][i_snt])):
+                    wrd = batch[0][i_snt][i_wrd]
+                    if wrd == vocab.idx_pad:
+                        continue
 
-            for i in range(len(wrd_i)): ### words to find their closest
-                ind_snt = batch[1][i]
-                ind_wrd = batch[2][i]
-                wrd = vocab[wrd_i[i]]
-                out = []
-                out.append("{}:{}:{}".format(ind_snt,ind_wrd,wrd))
+                    wrd_e = model.WordEmbed(wrd, 'iEmb') #.cpu().detach().numpy().tolist()
 
-                dist_wrd_voc = distance(wrd_e[i].unsqueeze(0),voc_e)
-                mininds = torch.argsort(dist_wrd_voc,dim=0,descending=True)
-                for k in range(1,len(mininds)):
-                    ind = mininds[k].item() #cpu().detach().numpy()
-                    if i != ind:
-                        dis = dist_wrd_voc[ind].item()
-                        wrd = vocab[ind]
-                        out.append("{:.6f}:{}".format(dis,wrd))
-                        if len(out)-1 == args.k:
-                            break
-                print('\t'.join(out))
+                    for i in range(len(wrd_i)): ### words to find their closest
+                        out = []
+                        out.append("{}:{}:{}:{}".format(batch_ind[i_snt],wrd,vocab[wrd]))
+
+                        dist_wrd_voc = distance(wrd_e[i].unsqueeze(0),voc_e)
+                        mininds = torch.argsort(dist_wrd_voc,dim=0,descending=True)
+                        for k in range(1,len(mininds)):
+                            ind = mininds[k].item() #cpu().detach().numpy()
+                            if i != ind:
+                                dis = dist_wrd_voc[ind].item()
+                                wrd = vocab[ind]
+                                out.append("{:.6f}:{}".format(dis,wrd))
+                                if len(out)-1 == args.k:
+                                    break
+                        print('\t'.join(out))
 
 
 ################################################################
@@ -213,7 +211,7 @@ class Args():
         self.prog = argv.pop(0)
         self.usage = '''usage: {} -name STRING -mode STRING -data FILES [Options]
    -name         STRING : experiment name
-   -mode         STRING : preprocess, train, sentence-vectors, word-vectors
+   -mode         STRING : preprocess, train, sentence-vectors, word-vectors, word-similarity
    -data          FILES : comma-separated OR with scaped wildcards
 
  Options:
