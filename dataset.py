@@ -125,7 +125,7 @@ class Dataset():
                 batch_ind.append(index)
                 ### batch filled
                 if len(batch_snt) == self.batch_size:
-                    batch_snt, batch_msk = self.add_pad(batch_snt, batch_mask, batch_snt_max_len)
+                    batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk, batch_snt_max_len)
                     yield [batch_snt, batch_msk, batch_ind]
                     batch_snt = []
                     batch_msk = []
