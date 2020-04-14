@@ -11,7 +11,7 @@ import random
 #import pyonmttok
 import glob
 import numpy as np
-#import torch.nn as nn
+import torch.nn as nn
 #from collections import Counter
 from dataset import Dataset
 from vocab import Vocab
