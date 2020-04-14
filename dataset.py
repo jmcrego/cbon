@@ -104,6 +104,7 @@ class Dataset():
             addn = max_len - len(batch_ctx)
             batch_ctx[k] += [self.idx_pad]*addn
             batch_msk[k] += [False]*addn
+            print(batch_ctx[k])
         return batch_ctx, batch_msk
 
     def __iter__(self):
@@ -118,7 +119,6 @@ class Dataset():
             batch_ind = []
             for index in indexs:
                 snt, msk = self.get_context(self.corpus[index]) ### returns context for the entire sentence
-                print(snt)
                 batch_snt.append(snt)
                 batch_msk.append(msk)
                 batch_ind.append(index)
