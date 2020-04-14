@@ -165,7 +165,10 @@ def do_word_similarity(args):
                         wrd = vocab[ind]
                         WRD = wrd.split(' ')
                         res = []
-                        for w in WRD:
+                        if len(WRD) > 1:
+                            for w in WRD:
+                                res.append(vocab[int(w)])
+                        else:
                             res.append(vocab[w])
                         out.append("{:.6f}:{}:{}".format(dist,ind,' '.join(res)))
                         if len(out)-1 == args.k:
