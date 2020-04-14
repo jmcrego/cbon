@@ -128,7 +128,7 @@ class Dataset():
         ######################################################
         ### sentnce-vectors ##################################
         ######################################################
-        if self.mode == 'sentence-vectors':
+        elif self.mode == 'sentence-vectors':
             length = [len(self.corpus[i]) for i in range(len(self.corpus))]
             indexs = np.argsort(np.array(length))
             batch_snt = []

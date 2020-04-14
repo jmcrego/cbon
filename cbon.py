@@ -345,7 +345,7 @@ if __name__ == "__main__":
         do_word_similarity(args)
 
     else:
-        logging.error('Bbad -mode option {}'.format(args.mode))
+        logging.error('bad -mode option {}'.format(args.mode))
 
     logging.info('Done!')
 
