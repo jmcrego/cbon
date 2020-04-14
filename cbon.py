@@ -82,6 +82,36 @@ def do_train(args):
     save_model(args.name, model, n_steps, args.keep_last_n)
     save_optim(args.name, optimizer)
 
+def do_sent(args):
+    if not os.path.exists(args.name + '.token'):
+        logging.error('missing {} file'.format(args.name + '.token'))
+        sys.exit()
+    if not os.path.exists(args.name + '.vocab'):
+        logging.error('missing {} file'.format(args.name + '.vocab'))
+        sys.exit()
+    if len(glob.glob(args.name + '.model.?????????.pth')) == 0:
+        logging.error('no model available: {}'.format(args.name + '.model.?????????.pth'))
+        sys.exit()
+
+    token = OpenNMTTokenizer(args.name + '.token')
+    vocab = Vocab()
+    vocab.read(args.name + '.vocab')
+    args.voc_maxn = vocab.max_ngram
+
+    model, _ = load_model(args.name, vocab)
+    if args.cuda:
+        model.cuda()
+
+    dataset = Dataset(args, token, vocab, args.mode, skip_subsampling=True)
+    with torch.no_grad():
+        model.eval()
+        for batch in dataset:
+            snts = model.NgramsEmbed(batch[0], batch[1]).cpu().detach().numpy().tolist()
+            for i in range(len(snts)):
+                sentence = ["{:.6f}".format(w) for w in snts[i]]
+                print('{}\t{}'.format(batch[2][i]+1, ' '.join(sentence) ))
+
+
 def do_word(args):
     if not os.path.exists(args.name + '.token'):
         logging.error('missing {} file (run preprocess mode)'.format(args.name + '.token'))
@@ -143,37 +173,6 @@ def do_word(args):
                 print('\t'.join(out))
 
 
-def do_sent(args):
-    if not os.path.exists(args.name + '.token'):
-        logging.error('missing {} file (run preprocess mode)'.format(args.name + '.token'))
-        sys.exit()
-    if not os.path.exists(args.name + '.vocab'):
-        logging.error('missing {} file (run preprocess mode)'.format(args.name + '.vocab'))
-        sys.exit()
-    if len(glob.glob(args.name + '.model.?????????.pth')) == 0:
-        logging.error('no model available: {}'.format(args.name + '.model.?????????.pth'))
-        sys.exit()
-
-    token = OpenNMTTokenizer(args.name + '.token')
-    vocab = Vocab()
-    vocab.read(args.name + '.vocab')
-    args.embedding_size, args.pooling, args.voc_maxn = read_params(args)
-    model = Word2Vec(len(vocab), args.embedding_size, args.pooling, vocab.idx_pad)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate, betas=(args.beta1,args.beta2), eps=args.eps)
-    n_steps, model, optimizer = load_model_optim(args.name, args.embedding_size, vocab, model, optimizer)
-    if args.cuda:
-        model.cuda()
-
-    dataset = Dataset(args, token, vocab, 'sent', skip_subsampling=True)
-    with torch.no_grad():
-        model.eval()
-        for batch in dataset:
-            snts = model.SentEmbed(batch[0], batch[1], 'iEmb').cpu().detach().numpy().tolist()
-            for i in range(len(snts)):
-                sentence = ["{:.6f}".format(w) for w in snts[i]]
-                print('{}\t{}'.format(batch[2][i]+1, ' '.join(sentence) ))
-
-
 ################################################################
 ### args #######################################################
 ################################################################
@@ -211,7 +210,7 @@ class Args():
         self.prog = argv.pop(0)
         self.usage = '''usage: {} -name STRING -mode STRING -data FILES [Options]
    -name         STRING : experiment name
-   -mode         STRING : preprocess, train, sent, word, wordinsent
+   -mode         STRING : preprocess, train, sentence-vectors, word-vectors
    -data          FILES : comma-separated OR with scaped wildcards
 
  Options:
@@ -333,10 +332,10 @@ if __name__ == "__main__":
     elif args.mode == 'train':
         do_train(args)
 
-    elif args.mode == 'sent':
+    elif args.mode == 'sentence-vectors':
         do_sent(args)
 
-    elif args.mode == 'word':
+    elif args.mode == 'word-vectors':
         do_word(args)
 
     else:

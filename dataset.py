@@ -53,10 +53,11 @@ class Dataset():
             ntokens = self.SubSample(ntokens)
             logging.info('subsampled to {} tokens'.format(ntokens))
 
-    def get_context(self, toks, center):
+
+    def get_context(self, toks, center=None):
         ctx = []
         msk = [] #mask of positive words (to indicate true words 1.0 or padding 0.0)
-        if self.window > 0:
+        if self.window > 0 and center is not None:
             first_idx = max(center-self.window, 0)
             last_idx = min(center+self.window, len(toks)-1)
         else:
@@ -65,14 +66,14 @@ class Dataset():
 
         ### add all ngrams in [first_idx, last_idx] which do not contain center
         for i in range(first_idx, last_idx+1):
-            if i == center:
+            if center is not None and i == center:
                 continue
             ctx.append(toks[i]) #toks[i] = 34
             msk.append(True)
             ngrams = [str(toks[i])] #ngrams ['34']
 
             for n in range(1,self.voc_maxn):
-                if i+n == center:
+                if center is not None and i+n == center:
                     break
                 if i+n >= len(toks):
                     break
@@ -89,7 +90,6 @@ class Dataset():
 
         return ctx, msk
 
-        
     def get_negatives(self, wrd, ctx):
         neg = []
         while len(neg) < self.n_negs:
@@ -98,70 +98,41 @@ class Dataset():
                 neg.append(idx)
         return neg
 
-    def get_sentence_negs(self, sentence, center, n_negs):
-        wrd = sentence[center]
-        snt = list(sentence)
-        del snt[center]
-        msk = [True] * len(snt)
-        neg = []
-        n = 0
-        while n < n_negs:
-            idx = random.randint(1, self.vocab_size-1) #do not consider idx=0 (unk)
-            if idx in snt or idx == wrd:
-                continue
-            neg.append(idx)
-            n += 1
-        return wrd, snt, neg, msk
+    def add_pad(self, batch_ctx, batch_msk, ctx_max_len):        
+        for k in range(len(batch_ctx)):
+            addn = ctx_max_len - len(batch_ctx)
+            batch_ctx[k] += [self.idx_pad]*addn
+            batch_msk[k] += [False]*addn
+        return batch_ctx, batch_msk
 
     def __iter__(self):
         ######################################################
         ### sent #############################################
         ######################################################
-        if self.mode == 'sent':
+        if self.mode == 'sentence-vectors':
             length = [len(self.corpus[i]) for i in range(len(self.corpus))]
             indexs = np.argsort(np.array(length))
             batch_snt = []
-            batch_len = []
+            batch_msk = []
             batch_ind = []
+            batch_snt_max_len = 0
             for index in indexs:
-                snt = self.corpus[index]
+                snt, msk = self.get_context(self.corpus[index]) ### returns context for the entire sentence
+                if len(snt) > batch_snt_max_len:
+                    batch_snt_max_len = len(snt)
                 batch_snt.append(snt)
-                batch_len.append(len(snt))
+                batch_msk.append(msk)
                 batch_ind.append(index)
-                ### add padding
-                if len(batch_snt) > 1 and len(snt) > len(batch_snt[0]): 
-                    for k in range(len(batch_snt)-1):
-                        addn = len(batch_snt[-1]) - len(batch_snt[k])
-                        batch_snt[k] += [self.idx_pad]*addn
                 ### batch filled
                 if len(batch_snt) == self.batch_size:
-                    yield [batch_snt, batch_len, batch_ind]
+                    batch_snt, batch_msk = self.add_pad(batch_snt, batch_mask, batch_snt_max_len)
+                    yield [batch_snt, batch_msk, batch_ind]
                     batch_snt = []
-                    batch_len = []
+                    batch_msk = []
                     batch_ind = []
+                    batch_snt_max_len = 0
             if len(batch_snt):
-                yield [batch_snt, batch_len, batch_ind]
-
-        ######################################################
-        ### word #############################################
-        ######################################################
-        elif self.mode == 'word':
-            batch_wrd = []
-            batch_isnt = []
-            batch_iwrd = []
-            for index in range(len(self.corpus)):
-                for iwrd in range(len(self.corpus[index])):
-                    batch_wrd.append(self.corpus[index][iwrd])
-                    batch_isnt.append(index)
-                    batch_iwrd.append(iwrd)
-                    ### batch filled
-                    if len(batch_wrd) == self.batch_size:
-                        yield [batch_wrd,batch_isnt,batch_iwrd]
-                        batch_wrd = []
-                        batch_isnt = []
-                        batch_iwrd = []
-            if len(batch_wrd):
-                yield [batch_wrd,batch_isnt,batch_iwrd]
+                yield [batch_snt, batch_msk, batch_ind]
 
         ######################################################
         ### train ############################################
@@ -195,11 +166,7 @@ class Dataset():
                     batch_neg.append(neg)
                     batch_msk.append(msk)
                     if len(batch_wrd) == self.batch_size:
-                        ### add padding
-                        for k in range(len(batch_ctx)):
-                            addn = batch_ctx_max_len - len(batch_ctx[k])
-                            batch_ctx[k] += [self.idx_pad]*addn
-                            batch_msk[k] += [False]*addn
+                        batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk, batch_ctx_max_len)
                         yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
                         batch_wrd = []
                         batch_ctx = []
@@ -207,11 +174,7 @@ class Dataset():
                         batch_msk = []
                         batch_ctx_max_len = 0
             if len(batch_wrd):
-                ### add padding
-                for k in range(len(batch_ctx)):
-                    addn = batch_ctx_max_len - len(batch_ctx[k])
-                    batch_ctx[k] += [self.idx_pad]*addn
-                    batch_msk[k] += [False]*addn
+                batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk, batch_ctx_max_len)
                 yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
 
         ######################################################

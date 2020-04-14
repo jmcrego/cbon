@@ -85,7 +85,7 @@ class Vocab():
                 self.tok_to_idx[idx] = len(self.idx_to_tok)
                 self.idx_to_tok.append(idx)
 
-        logging.info('built vocab ({} entries) ngrams {} from {}'.format(len(self.idx_to_tok),ngrams,files))
+        logging.info('built vocab ({} entries) ngrams {} from {}'.format(len(self.idx_to_tok),dict(ngrams),files))
 
     def __len__(self):
         return len(self.idx_to_tok)
