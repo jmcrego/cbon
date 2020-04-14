@@ -105,7 +105,11 @@ def do_sentence_vectors(args):
     with torch.no_grad():
         model.eval()
         for batch in dataset:
-            snts = model.NgramsEmbed(batch[0], batch[1]).cpu().detach().numpy().tolist()
+            #[batch_snt, batch_msk, batch_ind]
+            msk = torch.as_tensor(batch[2]) #[bs,n] (positive words are 1.0 others are 0.0)
+            if self.iEmb.weight.is_cuda:
+                msk = msk.cuda()            
+            snts = model.NgramsEmbed(batch[0], msk).cpu().detach().numpy().tolist()
             for i in range(len(snts)):
                 sentence = ["{:.6f}".format(w) for w in snts[i]]
                 print('{}\t{}'.format(batch[2][i]+1, ' '.join(sentence) ))
