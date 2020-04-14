@@ -106,7 +106,7 @@ def do_sentence_vectors(args):
         model.eval()
         for batch in dataset:
             #[batch_snt, batch_msk, batch_ind]
-            msk = torch.as_tensor(batch[2]) #[bs,n] (positive words are 1.0 others are 0.0)
+            msk = torch.as_tensor(batch[1]) #[bs,n] (positive words are 1.0 others are 0.0)
             if args.cuda:
                 msk = msk.cuda()            
             snts = model.NgramsEmbed(batch[0], msk).cpu().detach().numpy().tolist()
