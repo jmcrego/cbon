@@ -339,6 +339,9 @@ if __name__ == "__main__":
     elif args.mode == 'word-vectors':
         do_word(args)
 
+    elif args.mode == 'word-similarity':
+        do_word_similarity(args)
+
     else:
         logging.error('bad -mode option {}'.format(args.mode))
 
