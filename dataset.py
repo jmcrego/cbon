@@ -118,6 +118,7 @@ class Dataset():
             batch_snt_max_len = 0
             for index in indexs:
                 snt, msk = self.get_context(self.corpus[index]) ### returns context for the entire sentence
+                print(snt)
                 if len(snt) > batch_snt_max_len:
                     batch_snt_max_len = len(snt)
                 batch_snt.append(snt)
