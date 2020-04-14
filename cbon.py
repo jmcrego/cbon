@@ -169,7 +169,7 @@ def do_word_similarity(args):
                             for w in WRD:
                                 res.append(vocab[int(w)])
                         else:
-                            res.append(vocab[wrd])
+                            res.append(wrd)
                         out.append("{:.6f}:{}:{}".format(dist,ind,' '.join(res)))
                         if len(out)-1 == args.k:
                             break
