@@ -339,13 +339,13 @@ if __name__ == "__main__":
         do_sentence_vectors(args)
 
     elif args.mode == 'word-vectors':
-        do_word(args)
+        do_word_vectors(args)
 
     elif args.mode == 'word-similarity':
         do_word_similarity(args)
 
     else:
-        logging.error('bad -mode option {}'.format(args.mode))
+        logging.error('Bbad -mode option {}'.format(args.mode))
 
     logging.info('Done!')
 
