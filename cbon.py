@@ -97,7 +97,6 @@ def do_sentence_vectors(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.voc_maxn = vocab.max_ngram
-    sys.exit()
     model, _ = load_model(args.name, vocab)
     if args.cuda:
         model.cuda()
