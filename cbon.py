@@ -115,6 +115,38 @@ def do_sentence_vectors(args):
                 print('{}\t{}'.format(batch[2][i]+1, ' '.join(sentence) ))
 
 
+def do_word_vectors(args):
+    if not os.path.exists(args.name + '.token'):
+        logging.error('missing {} file (run preprocess mode)'.format(args.name + '.token'))
+        sys.exit()
+    if not os.path.exists(args.name + '.vocab'):
+        logging.error('missing {} file (run preprocess mode)'.format(args.name + '.vocab'))
+        sys.exit()
+    if len(glob.glob(args.name + '.model.?????????.pth')) == 0:
+        logging.error('no model available: {}'.format(args.name + '.model.?????????.pth'))
+        sys.exit()
+
+    token = OpenNMTTokenizer(args.name + '.token')
+    vocab = Vocab()
+    vocab.read(args.name + '.vocab')
+    args.voc_maxn = vocab.max_ngram
+    model, _ = load_model(args.name, vocab)
+    if args.cuda:
+        model.cuda()
+
+    dataset = Dataset(args, token, vocab, skip_subsampling=True)
+    with torch.no_grad():
+        model.eval()
+        for batch in dataset:
+            batch_i = batch[0]
+            batch_e = model.WordEmbed(batch_i, 'iEmb')
+            for i in range(len(batch_e)):
+                wrd_i = batch_i[i]
+                wrd_e = batch_e[i]
+                vector = ["{:.6f}".format(v) for v in wrd_e]
+                print('{}\t{}'.format(wrd_i, ' '.join(vector) ))
+
+
 def do_word_similarity(args):
     if not os.path.exists(args.name + '.token'):
         logging.error('missing {} file (run preprocess mode)'.format(args.name + '.token'))
