@@ -162,7 +162,12 @@ def do_word_similarity(args):
                     ind = mininds[k].item() #cpu().detach().numpy()
                     if i != ind:
                         dist = dist_wrd_voc[ind].item()
-                        out.append("{:.6f}:{}:{}".format(dist,ind,vocab[ind]))
+                        wrd = vocab[ind]
+                        WRD = wrd.split(' ')
+                        res = []
+                        for w in WRD:
+                            res.append(vocab[w])
+                        out.append("{:.6f}:{}:{}".format(dist,ind,' '.join(res)))
                         if len(out)-1 == args.k:
                             break
                 print('\t'.join(out))
