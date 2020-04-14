@@ -148,30 +148,25 @@ def do_word_similarity(args):
         voc_i = [i for i in range(0,len(vocab))]
         voc_e = model.WordEmbed(voc_i,'iEmb')
         for batch in dataset:
-            #[batch_snt, batch_msk, batch_ind]
-            for i_snt in range(len(batch[0])):
-                for i_wrd in range(len(batch[0][i_snt])):
-                    wrd = batch[0][i_snt][i_wrd]
-                    if wrd == vocab.idx_pad:
-                        continue
-
-                    wrd_e = model.WordEmbed(wrd, 'iEmb') #.cpu().detach().numpy().tolist()
-
-                    for i in range(len(wrd_i)): ### words to find their closest
-                        out = []
-                        out.append("{}:{}:{}:{}".format(batch_ind[i_snt],wrd,vocab[wrd]))
-
-                        dist_wrd_voc = distance(wrd_e[i].unsqueeze(0),voc_e)
-                        mininds = torch.argsort(dist_wrd_voc,dim=0,descending=True)
-                        for k in range(1,len(mininds)):
-                            ind = mininds[k].item() #cpu().detach().numpy()
-                            if i != ind:
-                                dis = dist_wrd_voc[ind].item()
-                                wrd = vocab[ind]
-                                out.append("{:.6f}:{}".format(dis,wrd))
-                                if len(out)-1 == args.k:
-                                    break
-                        print('\t'.join(out))
+            batch_i = batch[0]
+            batch_e = model.WordEmbed(batch_i, 'iEmb')
+            for i in range(len(batch_i)):
+                wrd_i = batch_i[i]
+                wrd = vocab[wrd_i]
+                wrd_e = batch_e[i]
+                out = []
+                out.append("{}:{}".format(wrd_i,wrd))
+                dist_wrd_voc = distance(wrd_e.unsqueeze(0),voc_e) ### distance between this word_e to all words in voc
+                mininds = torch.argsort(dist_wrd_voc,dim=0,descending=True)
+                for k in range(1,len(mininds)):
+                    ind = mininds[k].item() #cpu().detach().numpy()
+                    if i != ind:
+                        dis = dist_wrd_voc[ind].item()
+                        wrd = vocab[ind]
+                        out.append("{:.6f}:{}".format(dis,wrd))
+                        if len(out)-1 == args.k:
+                            break
+                print('\t'.join(out))
 
 
 ################################################################

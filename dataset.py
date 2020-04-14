@@ -110,7 +110,22 @@ class Dataset():
 
     def __iter__(self):
         ######################################################
-        ### sent #############################################
+        ### word-similarity word-vectors #####################
+        ######################################################
+        if self.mode == 'word-similarity' or self.mode == 'word-vectors':
+            batch_wrd = []
+            for index in indexs:
+                for wrd in self.corpus[index]:
+                    batch_wrd.append(wrd)
+                    ### batch filled
+                    if len(batch_wrd) == self.batch_size:
+                        yield [batch_wrd]
+                        batch_wrd = []
+            if len(batch_wrd):
+                yield [batch_wrd]
+
+        ######################################################
+        ### sentnce-vectors ##################################
         ######################################################
         if self.mode == 'sentence-vectors':
             length = [len(self.corpus[i]) for i in range(len(self.corpus))]
