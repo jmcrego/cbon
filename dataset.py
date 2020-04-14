@@ -98,9 +98,10 @@ class Dataset():
                 neg.append(idx)
         return neg
 
-    def add_pad(self, batch_ctx, batch_msk, ctx_max_len):        
+    def add_pad(self, batch_ctx, batch_msk):
+        max_len = max([len(x) for x in batch_ctx])
         for k in range(len(batch_ctx)):
-            addn = ctx_max_len - len(batch_ctx)
+            addn = max_len - len(batch_ctx)
             batch_ctx[k] += [self.idx_pad]*addn
             batch_msk[k] += [False]*addn
         return batch_ctx, batch_msk
@@ -115,7 +116,6 @@ class Dataset():
             batch_snt = []
             batch_msk = []
             batch_ind = []
-            batch_snt_max_len = 0
             for index in indexs:
                 snt, msk = self.get_context(self.corpus[index]) ### returns context for the entire sentence
                 print(snt)
@@ -126,20 +126,18 @@ class Dataset():
                 batch_ind.append(index)
                 ### batch filled
                 if len(batch_snt) == self.batch_size:
-                    batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk, batch_snt_max_len)
+                    batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
                     yield [batch_snt, batch_msk, batch_ind]
                     batch_snt = []
                     batch_msk = []
                     batch_ind = []
-                    batch_snt_max_len = 0
             if len(batch_snt):
+                batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
                 yield [batch_snt, batch_msk, batch_ind]
 
         ######################################################
         ### train ############################################
         ######################################################
-        #context words will be embedded by Input
-        #center/negative words will be embedded by Output
         elif self.mode == 'train':
             if self.window == 0:
                 length = [len(self.corpus[i]) for i in range(len(self.corpus))]
@@ -151,7 +149,6 @@ class Dataset():
             batch_ctx = []
             batch_neg = []
             batch_msk = []
-            batch_ctx_max_len = 0
             for index in indexs:
                 toks = self.corpus[index]
                 if len(toks) < 2: ### may be subsampled
@@ -159,23 +156,20 @@ class Dataset():
                 for i in range(len(toks)):
                     wrd = toks[i]
                     ctx, msk = self.get_context(toks,i)
-                    if len(ctx) > batch_ctx_max_len:
-                        batch_ctx_max_len = len(ctx)
                     neg = self.get_negatives(wrd,ctx)
                     batch_wrd.append(wrd)
                     batch_ctx.append(ctx)
                     batch_neg.append(neg)
                     batch_msk.append(msk)
                     if len(batch_wrd) == self.batch_size:
-                        batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk, batch_ctx_max_len)
+                        batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
                         yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
                         batch_wrd = []
                         batch_ctx = []
                         batch_neg = []
                         batch_msk = []
-                        batch_ctx_max_len = 0
             if len(batch_wrd):
-                batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk, batch_ctx_max_len)
+                batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
                 yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
 
         ######################################################

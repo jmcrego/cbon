@@ -112,9 +112,9 @@ class Word2Vec(nn.Module):
         if self.iEmb.weight.is_cuda:
             wrd = wrd.cuda()
 
-        if torch.isnan(wrd).any() or torch.isinf(wrd).any():
-            logging.error('NaN/Inf detected in input wrd {}'.format(wrd))
-            sys.exit()            
+#        if torch.isnan(wrd).any() or torch.isinf(wrd).any():
+#            logging.error('NaN/Inf detected in input wrd {}'.format(wrd))
+#            sys.exit()            
         if layer == 'iEmb':
             emb = self.iEmb(wrd) #[bs,ds]
         elif layer == 'oEmb':
@@ -122,6 +122,7 @@ class Word2Vec(nn.Module):
         else:
             logging.error('bad layer {}'.format(layer))
             sys.exit()
+ 
         if torch.isnan(emb).any() or torch.isinf(emb).any():
             logging.error('NaN/Inf detected in {} layer emb.shape={}\nwrds {}'.format(layer,emb.shape,wrd))
             self.NaN(wrd,emb)
