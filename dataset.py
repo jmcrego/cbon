@@ -113,6 +113,7 @@ class Dataset():
         ### word-similarity word-vectors #####################
         ######################################################
         if self.mode == 'word-similarity' or self.mode == 'word-vectors':
+            indexs = [i for i in range(len(self.corpus))]
             batch_wrd = []
             for index in indexs:
                 for wrd in self.corpus[index]:
