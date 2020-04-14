@@ -101,7 +101,7 @@ def do_sentence_vectors(args):
     if args.cuda:
         model.cuda()
 
-    dataset = Dataset(args, token, vocab, args.mode, skip_subsampling=True)
+    dataset = Dataset(args, token, vocab, skip_subsampling=True)
     with torch.no_grad():
         model.eval()
         for batch in dataset:
@@ -140,7 +140,7 @@ def do_word(args):
         logging.error('bad -sim option {}'.format(args.sim))
         sys.exit()
 
-    dataset = Dataset(args, token, vocab, 'word', skip_subsampling=True)
+    dataset = Dataset(args, token, vocab, skip_subsampling=True)
     with torch.no_grad():
         model.eval()
         voc_i = [i for i in range(0,len(vocab))]
