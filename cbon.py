@@ -82,7 +82,7 @@ def do_train(args):
     save_model(args.name, model, n_steps, args.keep_last_n)
     save_optim(args.name, optimizer)
 
-def do_sent(args):
+def do_sentence_vectors(args):
     if not os.path.exists(args.name + '.token'):
         logging.error('missing {} file'.format(args.name + '.token'))
         sys.exit()
@@ -97,7 +97,7 @@ def do_sent(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.voc_maxn = vocab.max_ngram
-
+    sys.exit()
     model, _ = load_model(args.name, vocab)
     if args.cuda:
         model.cuda()
@@ -333,7 +333,7 @@ if __name__ == "__main__":
         do_train(args)
 
     elif args.mode == 'sentence-vectors':
-        do_sent(args)
+        do_sentence_vectors(args)
 
     elif args.mode == 'word-vectors':
         do_word(args)
