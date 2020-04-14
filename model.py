@@ -108,7 +108,7 @@ class Word2Vec(nn.Module):
         nn.init.uniform_(self.oEmb.weight, -0.1, 0.1)
 
     def WordEmbed(self, wrd, layer):
-        print('wrd [{}, {}]',len(wrd),len(wrd[0]))
+        print('wrd [{}, {}]'.format(len(wrd),len(wrd[0])))
         wrd = torch.as_tensor(wrd) 
         if self.iEmb.weight.is_cuda:
             wrd = wrd.cuda()
