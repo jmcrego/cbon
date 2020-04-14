@@ -112,6 +112,7 @@ class Word2Vec(nn.Module):
         if self.iEmb.weight.is_cuda:
             wrd = wrd.cuda()
 
+        print('wrd',wrd)
         print('wrd.shape',wrd.shape)
         sys.exit()
 
