@@ -130,6 +130,7 @@ class Word2Vec(nn.Module):
         return emb
 
     def NgramsEmbed(self, ngrams, msk):
+        print('ngrams.shape',ngrams.shape)
         ngrams_emb = self.WordEmbed(ngrams,'iEmb') #[bs,n,ds]
         if self.pooling == 'avg':
             ngrams_emb = (ngrams_emb*msk.unsqueeze(-1)).sum(1) / torch.sum(msk, dim=1).unsqueeze(-1) #[bs,n,ds]x[bs,n,1]=>[bs,ds] / [bs,1] = [bs,ds] 
