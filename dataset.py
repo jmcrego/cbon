@@ -162,7 +162,6 @@ class Dataset():
             batch_neg = []
             batch_msk = []
             batches = []
-            randomize_batches = True #this is only needed when sorting sentences (window == 0)
             for index in indexs:
                 toks = self.corpus[index]
                 if len(toks) < 2: ### may be subsampled
@@ -177,28 +176,15 @@ class Dataset():
                     batch_msk.append(msk)
                     if len(batch_wrd) == self.batch_size:
                         batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                        if randomize_batches:
-                            batches.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
-                        else:
-                            yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+                        yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
                         batch_wrd = []
                         batch_ctx = []
                         batch_neg = []
                         batch_msk = []
             if len(batch_wrd):
                 batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                if randomize_batches:
-                    batches.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
-                else:
-                    yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+                yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
  
-            if randomize_batches:
-                logging.info('built {} batches'.format(len(batches)))
-                indexs = [i for i in range(len(batches))]
-                random.shuffle(indexs) 
-                for index in indexs:
-                    yield batches[index]
-
         ######################################################
         ### error ############################################
         ######################################################
