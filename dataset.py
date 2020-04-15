@@ -193,7 +193,7 @@ class Dataset():
                     yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
  
             if randomize_batches:
-                logging.info('Built {} batches'.format(len(batches)))
+                logging.info('built {} batches'.format(len(batches)))
                 indexs = [i for i in range(len(batches))]
                 random.shuffle(indexs) 
                 for index in indexs:

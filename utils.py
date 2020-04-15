@@ -5,7 +5,7 @@ import gzip
 import io
 
 def open_read(file):
-    logging.info('reading: {}'.format(file))
+    logging.info('open for reading: {}'.format(file))
     if file.endswith('.gz'): 
         f = gzip.open(file, 'rb')
         is_gzip = True
