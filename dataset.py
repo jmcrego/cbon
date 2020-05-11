@@ -22,6 +22,7 @@ class Dataset():
         self.window = args.window
         self.n_negs = args.n_negs
         self.mode = args.mode
+        self.shard_size = args.shard_size
         self.vocab_size = len(vocab)
         self.voc_maxn = vocab.max_ngram
         self.idx_pad = vocab.idx_pad
@@ -48,10 +49,24 @@ class Dataset():
             f.close()
         pOOV = 100.0 * nOOV / ntokens
         logging.info('read {} sentences with {} tokens (%OOV={:.2f})'.format(len(self.corpus), ntokens, pOOV))
+
+        ### shuffle corpus and build shards
+        self.indexs = [i for i in range(len(self.corpus))]
+        random.shuffle(self.indexs)
+        self.shards = [[]]
+        total = 0
+        for ind in self.indexs:
+            if len(self.shards[-1]) == self.shard_size:
+                logging.info('filled shard {} with {} entries ({})'.format(len(self.shards),len(self.shards[-1]),total))
+                self.shards.append([])
+            self.shards[-1].append(ind)
+            total += 1
+        logging.info('filled shard {} with {} entries ({})'.format(len(self.shards),len(self.shards[-1]),total))
+
         ### subsample
-        if not skip_subsampling:
-            ntokens = self.SubSample(ntokens)
-            logging.info('subsampled to {} tokens'.format(ntokens))
+        #if not skip_subsampling:
+        #    ntokens = self.SubSample(ntokens)
+        #    logging.info('subsampled to {} tokens'.format(ntokens))
 
 
     def get_context(self, toks, center=None):
@@ -64,7 +79,7 @@ class Dataset():
             first_idx = 0
             last_idx = len(toks)-1
 
-        ### add all ngrams in [first_idx, last_idx] which do not contain center
+        ### add all ngrams in [first_idx, last_idx] which do not contain center (unless center==None)
         for i in range(first_idx, last_idx+1):
             if center is not None and i == center:
                 continue
@@ -110,80 +125,153 @@ class Dataset():
         ### word-similarity word-vectors #####################
         ######################################################
         if self.mode == 'word-similarity' or self.mode == 'word-vectors':
-            indexs = [i for i in range(len(self.corpus))]
-            batch_wrd = []
-            for index in indexs:
-                for wrd in self.corpus[index]:
-                    batch_wrd.append(wrd)
-                    ### batch filled
-                    if len(batch_wrd) == self.batch_size:
-                        yield [batch_wrd]
-                        batch_wrd = []
-            if len(batch_wrd):
-                yield [batch_wrd]
+            for ishard in range(len(self.shards)):
+                indexs_shard = self.shards[ishard]
+                batch_wrd = []
+                for index in indexs_shard:
+                    for wrd in self.corpus[index]:
+                        batch_wrd.append(wrd)
+                        ### batch filled
+                        if len(batch_wrd) == self.batch_size:
+                            yield [batch_wrd]
+                            batch_wrd = []
+                if len(batch_wrd):
+                    yield [batch_wrd]
+
+#            indexs = [i for i in range(len(self.corpus))]
+#            batch_wrd = []
+#            for index in indexs:
+#                for wrd in self.corpus[index]:
+#                    batch_wrd.append(wrd)
+#                    ### batch filled
+#                    if len(batch_wrd) == self.batch_size:
+#                        yield [batch_wrd]
+#                        batch_wrd = []
+#            if len(batch_wrd):
+#                yield [batch_wrd]
 
         ######################################################
         ### sentence-vectors #################################
         ######################################################
         elif self.mode == 'sentence-vectors':
-            length = [len(self.corpus[i]) for i in range(len(self.corpus))]
-            indexs = np.argsort(np.array(length))
-            batch_snt = []
-            batch_msk = []
-            batch_ind = []
-            for index in indexs:
-                snt, msk = self.get_context(self.corpus[index]) ### returns context for the entire sentence
-                batch_snt.append(snt)
-                batch_msk.append(msk)
-                batch_ind.append(index)
-                ### batch filled
-                if len(batch_snt) == self.batch_size:
+            for ishard in range(len(self.shards)):
+                indexs_shard = self.shards[ishard]
+                length = [len(self.corpus[i]) for i in indexs_shard] #length of sentences in this shard
+                indexs = np.argsort(np.array(length)) ### from smaller to larger sentences in this shard
+                batch_snt = []
+                batch_msk = []
+                batch_ind = []
+                for index in indexs:
+                    snt, msk = self.get_context(self.corpus[indexs_shard[index]]) ### returns context for the entire sentence
+                    batch_snt.append(snt)
+                    batch_msk.append(msk)
+                    batch_ind.append(index)
+                    ### batch filled
+                    if len(batch_snt) == self.batch_size:
+                        batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
+                        yield [batch_snt, batch_msk, batch_ind]
+                        batch_snt = []
+                        batch_msk = []
+                        batch_ind = []
+                if len(batch_snt):
                     batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
                     yield [batch_snt, batch_msk, batch_ind]
-                    batch_snt = []
-                    batch_msk = []
-                    batch_ind = []
-            if len(batch_snt):
-                batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
-                yield [batch_snt, batch_msk, batch_ind]
+
+#            length = [len(self.corpus[i]) for i in range(len(self.corpus))]
+#            indexs = np.argsort(np.array(length)) ### from smaller to larger sentences
+#            batch_snt = []
+#            batch_msk = []
+#            batch_ind = []
+#            for index in indexs:
+#                snt, msk = self.get_context(self.corpus[index]) ### returns context for the entire sentence
+#                batch_snt.append(snt)
+#                batch_msk.append(msk)
+#                batch_ind.append(index)
+#                ### batch filled
+#                if len(batch_snt) == self.batch_size:
+#                    batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
+#                    yield [batch_snt, batch_msk, batch_ind]
+#                    batch_snt = []
+#                    batch_msk = []
+#                    batch_ind = []
+#            if len(batch_snt):
+#                batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
+#                yield [batch_snt, batch_msk, batch_ind]
 
         ######################################################
         ### train ############################################
         ######################################################
         elif self.mode == 'train':
-            if self.window == 0:
-                length = [len(self.corpus[i]) for i in range(len(self.corpus))]
-                indexs = np.argsort(np.array(length)) ### from smaller to larger sentences
-            else:
-                indexs = [i for i in range(len(self.corpus))]
-                random.shuffle(indexs) 
-            batch_wrd = []
-            batch_ctx = []
-            batch_neg = []
-            batch_msk = []
-            batches = []
-            for index in indexs:
-                toks = self.corpus[index]
-                if len(toks) < 2: ### may be subsampled
-                    continue
-                for i in range(len(toks)):
-                    wrd = toks[i]
-                    ctx, msk = self.get_context(toks,i)
-                    neg = self.get_negatives(wrd,ctx)
-                    batch_wrd.append(wrd)
-                    batch_ctx.append(ctx)
-                    batch_neg.append(neg)
-                    batch_msk.append(msk)
-                    if len(batch_wrd) == self.batch_size:
-                        batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                        yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
-                        batch_wrd = []
-                        batch_ctx = []
-                        batch_neg = []
-                        batch_msk = []
-            if len(batch_wrd):
-                batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+            for ishard in range(len(self.shards)):
+                logging.info('learning over shard={}'.format(ishard))
+                indexs_shard = self.shards[ishard]
+                if self.window == 0:
+                    length = [len(self.corpus[i]) for i in indexs_shard] #length of sentences in this shard
+                    indexs = np.argsort(np.array(length)) ### from smaller to larger sentences in this shard
+                else:
+                    indexs = indexs_shard
+                    random.shuffle(indexs)
+                batch_wrd = []
+                batch_ctx = []
+                batch_neg = []
+                batch_msk = []
+                batches = []
+                for index in indexs:
+                    toks = self.corpus[index]
+                    if len(toks) < 2: ### may have been subsampled
+                        continue
+                    for i in range(len(toks)):
+                        wrd = toks[i]
+                        ctx, msk = self.get_context(toks,i)
+                        neg = self.get_negatives(wrd,ctx)
+                        batch_wrd.append(wrd)
+                        batch_ctx.append(ctx)
+                        batch_neg.append(neg)
+                        batch_msk.append(msk)
+                        if len(batch_wrd) == self.batch_size:
+                            batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
+                            yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+                            batch_wrd = []
+                            batch_ctx = []
+                            batch_neg = []
+                            batch_msk = []
+                if len(batch_wrd):
+                    batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
+                    yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+
+#            if self.window == 0:
+#                length = [len(self.corpus[i]) for i in range(len(self.corpus))]
+#                indexs = np.argsort(np.array(length)) ### from smaller to larger sentences
+#            else:
+#                indexs = [i for i in range(len(self.corpus))]
+#                random.shuffle(indexs)
+#            batch_wrd = []
+#            batch_ctx = []
+#            batch_neg = []
+#            batch_msk = []
+#            batches = []
+#            for index in indexs:
+#                toks = self.corpus[index]
+#                if len(toks) < 2: ### may be subsampled
+#                    continue
+#                for i in range(len(toks)):
+#                    wrd = toks[i]
+#                    ctx, msk = self.get_context(toks,i)
+#                    neg = self.get_negatives(wrd,ctx)
+#                    batch_wrd.append(wrd)
+#                    batch_ctx.append(ctx)
+#                    batch_neg.append(neg)
+#                    batch_msk.append(msk)
+#                    if len(batch_wrd) == self.batch_size:
+#                        batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
+#                        yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+#                        batch_wrd = []
+#                        batch_ctx = []
+#                        batch_neg = []
+#                        batch_msk = []
+#            if len(batch_wrd):
+#                batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
+#                yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
  
         ######################################################
         ### error ############################################
