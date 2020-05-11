@@ -226,6 +226,7 @@ class Args():
         self.voc_maxn = 1
         self.tok_conf = None
         self.train = None
+        self.shard_size = 500000
         self.pooling = 'avg'
         self.batch_size = 2048
         self.max_epochs = 1
@@ -266,6 +267,8 @@ class Args():
    -n_negs          INT : number of negative samples generated      (10)
    -skip_subsampling    : do not subsample corpora                  (False)
    -batch_size      INT : batch size used                           (1024)
+   -shard_size      INT : number of examples in a shard             (500000) NOT YET IMPLEMENTED
+   -force_ngrams        : use pooling for unseen ngrams             (False) NOT YET IMPLEMENTED
    -max_epochs      INT : stop learning after this number of epochs (1)
    -learning_rate FLOAT : learning rate for Adam optimizer          (0.001)
    -eps           FLOAT : eps for Adam optimizer                    (1e-08)
@@ -301,6 +304,7 @@ class Args():
             elif (tok=="-voc_maxs" and len(argv)): self.voc_maxs = int(argv.pop(0))
             elif (tok=="-voc_maxn" and len(argv)): self.voc_maxn = int(argv.pop(0))
             elif (tok=="-tok_conf" and len(argv)): self.tok_conf = argv.pop(0)
+            elif (tok=="-shard_size" and len(argv)): self.shard_size = int(argv.pop(0))
             elif (tok=="-batch_size" and len(argv)): self.batch_size = int(argv.pop(0))
             elif (tok=="-max_epochs" and len(argv)): self.max_epochs = int(argv.pop(0))
             elif (tok=="-embedding_size" and len(argv)): self.embedding_size = int(argv.pop(0))
