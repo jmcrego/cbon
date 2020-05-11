@@ -50,18 +50,9 @@ class Dataset():
         pOOV = 100.0 * nOOV / ntokens
         logging.info('read {} sentences with {} tokens (%OOV={:.2f})'.format(len(self.corpus), ntokens, pOOV))
 
-        ### shuffle corpus and build shards
+        ### index corpus
         self.indexs = [i for i in range(len(self.corpus))]
-        random.shuffle(self.indexs)
-        self.shards = [[]]
-        total = 0
-        for ind in self.indexs:
-            if len(self.shards[-1]) == self.shard_size:
-                logging.info('filled shard {} with {} entries ({})'.format(len(self.shards),len(self.shards[-1]),total))
-                self.shards.append([])
-            self.shards[-1].append(ind)
-            total += 1
-        logging.info('filled shard {} with {} entries ({})'.format(len(self.shards),len(self.shards[-1]),total))
+        #random.shuffle(self.indexs)
 
         ### subsample
         #if not skip_subsampling:
@@ -112,7 +103,7 @@ class Dataset():
 
     def add_pad(self, batch_ctx, batch_msk):
         max_len = max([len(x) for x in batch_ctx])
-        #print("max_len={}".format(max_len))
+        print("max={} lens_batch={}".format(max_len,[len(x) for x in batch_ctx]))
         for k in range(len(batch_ctx)):
             addn = max_len - len(batch_ctx[k])
             batch_ctx[k] += [self.idx_pad]*addn
@@ -125,8 +116,15 @@ class Dataset():
         ### word-similarity word-vectors #####################
         ######################################################
         if self.mode == 'word-similarity' or self.mode == 'word-vectors':
-            for ishard in range(len(self.shards)):
-                indexs_shard = self.shards[ishard]
+            first_index = 0
+            while first_index < len(self.indexs):
+                if self.shard_size > 0:
+                    next_index = min(first_index + self.shard_size, len(self.indexs))
+                else:
+                    next_index = len(self.indexs)
+                indexs_shard = self.indexs[first_index:next_index]
+                first_index = next_index
+
                 batch_wrd = []
                 for index in indexs_shard:
                     for wrd in self.corpus[index]:
@@ -154,10 +152,20 @@ class Dataset():
         ### sentence-vectors #################################
         ######################################################
         elif self.mode == 'sentence-vectors':
-            for ishard in range(len(self.shards)):
-                indexs_shard = self.shards[ishard]
-                length = [len(self.corpus[i]) for i in indexs_shard] #length of sentences in this shard
+
+            first_index = 0
+            while first_index < len(self.indexs):
+                if self.shard_size > 0:
+                    next_index = min(first_index + self.shard_size, len(self.indexs))
+                else:
+                    next_index = len(self.indexs)
+                indexs_shard = self.indexs[first_index:next_index]
+                first_index = next_index
+
+                logging.info('sorting shard by length')
+                length = [len(self.corpus[index]) for index in indexs_shard] #length of sentences in this shard
                 indexs = np.argsort(np.array(length)) ### from smaller to larger sentences in this shard
+
                 batch_snt = []
                 batch_msk = []
                 batch_ind = []
@@ -165,7 +173,7 @@ class Dataset():
                     snt, msk = self.get_context(self.corpus[indexs_shard[index]]) ### returns context for the entire sentence
                     batch_snt.append(snt)
                     batch_msk.append(msk)
-                    batch_ind.append(index)
+                    batch_ind.append(indexs_shard[index])
                     ### batch filled
                     if len(batch_snt) == self.batch_size:
                         batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
@@ -202,14 +210,23 @@ class Dataset():
         ### train ############################################
         ######################################################
         elif self.mode == 'train':
-            for ishard in range(len(self.shards)):
-                logging.info('learning over shard={}'.format(ishard))
-                indexs_shard = self.shards[ishard]
+
+            first_index = 0
+            while first_index < len(self.indexs):
+                if self.shard_size > 0:
+                    next_index = min(first_index + self.shard_size, len(self.indexs))
+                else:
+                    next_index = len(self.indexs)
+                indexs_shard = self.indexs[first_index:next_index]
+                first_index = next_index
+
                 if self.window == 0:
-                    length = [len(self.corpus[i]) for i in indexs_shard] #length of sentences in this shard
+                    logging.info('sorting shard by length')
+                    length = [len(self.corpus[index]) for index in indexs_shard] #length of sentences in this shard
                     indexs = np.argsort(np.array(length)) ### from smaller to larger sentences in this shard
                 else:
-                    indexs = indexs_shard
+                    logging.info('random sorting shard')
+                    indexs = [i for i in range(len(indexs_shard))]
                     random.shuffle(indexs)
                 batch_wrd = []
                 batch_ctx = []
@@ -217,6 +234,7 @@ class Dataset():
                 batch_msk = []
                 batches = []
                 for index in indexs:
+                    index = indexs_shard[index]
                     toks = self.corpus[index]
                     if len(toks) < 2: ### may have been subsampled
                         continue
@@ -252,7 +270,7 @@ class Dataset():
 #            batches = []
 #            for index in indexs:
 #                toks = self.corpus[index]
-#                if len(toks) < 2: ### may be subsampled
+#                if len(toks) < 2: ### may be subsampled 
 #                    continue
 #                for i in range(len(toks)):
 #                    wrd = toks[i]
