@@ -50,10 +50,6 @@ class Dataset():
         pOOV = 100.0 * nOOV / ntokens
         logging.info('read {} sentences with {} tokens (%OOV={:.2f})'.format(len(self.corpus), ntokens, pOOV))
 
-        ### index corpus
-        self.indexs = [i for i in range(len(self.corpus))]
-        #random.shuffle(self.indexs)
-
         ### subsample
         #if not skip_subsampling:
         #    ntokens = self.SubSample(ntokens)
@@ -116,64 +112,47 @@ class Dataset():
         ### word-similarity word-vectors #####################
         ######################################################
         if self.mode == 'word-similarity' or self.mode == 'word-vectors':
-            first_index = 0
-            while first_index < len(self.indexs):
-                if self.shard_size > 0:
-                    next_index = min(first_index + self.shard_size, len(self.indexs))
-                else:
-                    next_index = len(self.indexs)
-                indexs_shard = self.indexs[first_index:next_index]
-                first_index = next_index
-
-                batch_wrd = []
-                for index in indexs_shard:
-                    for wrd in self.corpus[index]:
-                        batch_wrd.append(wrd)
-                        ### batch filled
-                        if len(batch_wrd) == self.batch_size:
-                            yield [batch_wrd]
-                            batch_wrd = []
-                if len(batch_wrd):
-                    yield [batch_wrd]
-
-#            indexs = [i for i in range(len(self.corpus))]
-#            batch_wrd = []
-#            for index in indexs:
-#                for wrd in self.corpus[index]:
-#                    batch_wrd.append(wrd)
-#                    ### batch filled
-#                    if len(batch_wrd) == self.batch_size:
-#                        yield [batch_wrd]
-#                        batch_wrd = []
-#            if len(batch_wrd):
-#                yield [batch_wrd]
+            ### traverse sentences word by word (no shuffle no shards needed)
+            batch_wrd = []
+            for ind in range(len(self.corpus)):
+                for wrd in self.corpus[ind]:
+                    batch_wrd.append(wrd)
+                    ### batch filled
+                    if len(batch_wrd) == self.batch_size:
+                        yield [batch_wrd]
+                        batch_wrd = []
+            if len(batch_wrd):
+                yield [batch_wrd]
 
         ######################################################
         ### sentence-vectors #################################
         ######################################################
         elif self.mode == 'sentence-vectors':
-
+            ### build indexs
+            self.indexs = [i for i in range(len(self.corpus))]
+            ### shuffle indexs
+            random.shuffle(self.index)
             first_index = 0
             while first_index < len(self.indexs):
                 if self.shard_size > 0:
                     next_index = min(first_index + self.shard_size, len(self.indexs))
                 else:
                     next_index = len(self.indexs)
-                indexs_shard = self.indexs[first_index:next_index]
+                indexs_shard = self.indexs[first_index:next_index] ### a bunch of indexs of self.corpus
                 first_index = next_index
-
+                ### this shard is built of indexs_shard, indexes that points to self.indexs
                 logging.info('sorting shard by length')
-                length = [len(self.corpus[index]) for index in indexs_shard] #length of sentences in this shard
-                indexs = np.argsort(np.array(length)) ### from smaller to larger sentences in this shard
+                length = [len(self.corpus[ind]) for ind in indexs_shard] #length of sentences in this shard
+                indexs = np.argsort(np.array(length)) ### These are indexs of indexs_shard which are indexs of self.corpus
 
                 batch_snt = []
                 batch_msk = []
                 batch_ind = []
-                for index in indexs:
-                    snt, msk = self.get_context(self.corpus[indexs_shard[index]]) ### returns context for the entire sentence
+                for ind in indexs:
+                    snt, msk = self.get_context(self.corpus[indexs_shard[ind]]) ### returns context for the entire sentence
                     batch_snt.append(snt)
                     batch_msk.append(msk)
-                    batch_ind.append(indexs_shard[index])
+                    batch_ind.append(indexs_shard[ind]) ### position in original corpus
                     ### batch filled
                     if len(batch_snt) == self.batch_size:
                         batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
@@ -223,19 +202,19 @@ class Dataset():
                 if self.window == 0:
                     logging.info('sorting shard by length')
                     length = [len(self.corpus[index]) for index in indexs_shard] #length of sentences in this shard
-                    indexs = np.argsort(np.array(length)) ### from smaller to larger sentences in this shard
+                    indexs = np.argsort(np.array(length)) ### These are indexs of indexs_shard which are indexs of self.corpus
                 else:
                     logging.info('random sorting shard')
-                    indexs = [i for i in range(len(indexs_shard))]
+                    indexs = [i for i in range(len(indexs_shard))] ### These are indexs of indexs_shard which are indexs of self.corpus
                     random.shuffle(indexs)
                 batch_wrd = []
                 batch_ctx = []
                 batch_neg = []
                 batch_msk = []
                 batches = []
-                for index in indexs:
-                    index = indexs_shard[index]
-                    toks = self.corpus[index]
+                for ind in indexs:
+                    ind = indexs_shard[ind]
+                    toks = self.corpus[ind]
                     if len(toks) < 2: ### may have been subsampled
                         continue
                     for i in range(len(toks)):
