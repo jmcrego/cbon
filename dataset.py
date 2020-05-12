@@ -140,7 +140,7 @@ class Dataset():
                 indexs_shard = self.indexs[first_index:next_index] ### a bunch of indexs of self.corpus
                 first_index = next_index
                 ### this shard is built of indexs_shard, indexes that points to self.indexs
-                logging.info('sorting shard by length')
+                logging.info('sorting examples in shard by length')
                 length = [len(self.corpus[ind]) for ind in indexs_shard] #length of sentences in this shard
                 indexs = np.argsort(np.array(length)) ### These are indexs of indexs_shard which are indexs of self.corpus
 
@@ -170,27 +170,6 @@ class Dataset():
                 for ind in indexs_batchs:
                     yield batchs[ind]
 
-#            length = [len(self.corpus[i]) for i in range(len(self.corpus))]
-#            indexs = np.argsort(np.array(length)) ### from smaller to larger sentences
-#            batch_snt = []
-#            batch_msk = []
-#            batch_ind = []
-#            for index in indexs:
-#                snt, msk = self.get_context(self.corpus[index]) ### returns context for the entire sentence
-#                batch_snt.append(snt)
-#                batch_msk.append(msk)
-#                batch_ind.append(index)
-#                ### batch filled
-#                if len(batch_snt) == self.batch_size:
-#                    batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
-#                    yield [batch_snt, batch_msk, batch_ind]
-#                    batch_snt = []
-#                    batch_msk = []
-#                    batch_ind = []
-#            if len(batch_snt):
-#                batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
-#                yield [batch_snt, batch_msk, batch_ind]
-
         ######################################################
         ### train ############################################
         ######################################################
@@ -206,11 +185,11 @@ class Dataset():
                 first_index = next_index
                 ### this shard is built of indexs_shard, indexes that points to self.indexs
                 if self.window == 0:
-                    logging.info('sorting shard by length')
+                    logging.info('sorting examples in shard by length')
                     length = [len(self.corpus[index]) for index in indexs_shard] #length of sentences in this shard
                     indexs = np.argsort(np.array(length)) ### These are indexs of indexs_shard which are indexs of self.corpus
                 else:
-                    logging.info('random sorting shard')
+                    logging.info('randomly sorting examples in shard')
                     indexs = [i for i in range(len(indexs_shard))] ### These are indexs of indexs_shard which are indexs of self.corpus
                     random.shuffle(indexs)
 
@@ -251,41 +230,6 @@ class Dataset():
                 for ind in indexs_batchs:
                     yield batchs[ind]
 
-
-#            if self.window == 0:
-#                length = [len(self.corpus[i]) for i in range(len(self.corpus))]
-#                indexs = np.argsort(np.array(length)) ### from smaller to larger sentences
-#            else:
-#                indexs = [i for i in range(len(self.corpus))]
-#                random.shuffle(indexs)
-#            batch_wrd = []
-#            batch_ctx = []
-#            batch_neg = []
-#            batch_msk = []
-#            batches = []
-#            for index in indexs:
-#                toks = self.corpus[index]
-#                if len(toks) < 2: ### may be subsampled 
-#                    continue
-#                for i in range(len(toks)):
-#                    wrd = toks[i]
-#                    ctx, msk = self.get_context(toks,i)
-#                    neg = self.get_negatives(wrd,ctx)
-#                    batch_wrd.append(wrd)
-#                    batch_ctx.append(ctx)
-#                    batch_neg.append(neg)
-#                    batch_msk.append(msk)
-#                    if len(batch_wrd) == self.batch_size:
-#                        batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-#                        yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
-#                        batch_wrd = []
-#                        batch_ctx = []
-#                        batch_neg = []
-#                        batch_msk = []
-#            if len(batch_wrd):
-#                batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-#                yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
- 
         ######################################################
         ### error ############################################
         ######################################################
