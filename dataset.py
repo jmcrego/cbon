@@ -145,6 +145,7 @@ class Dataset():
                 length = [len(self.corpus[ind]) for ind in indexs_shard] #length of sentences in this shard
                 indexs = np.argsort(np.array(length)) ### These are indexs of indexs_shard which are indexs of self.corpus
 
+                batchs = []
                 batch_snt = []
                 batch_msk = []
                 batch_ind = []
@@ -156,13 +157,19 @@ class Dataset():
                     ### batch filled
                     if len(batch_snt) == self.batch_size:
                         batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
-                        yield [batch_snt, batch_msk, batch_ind]
+                        batchs.append([batch_snt, batch_msk, batch_ind])
                         batch_snt = []
                         batch_msk = []
                         batch_ind = []
                 if len(batch_snt):
                     batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
-                    yield [batch_snt, batch_msk, batch_ind]
+                    batchs.append([batch_snt, batch_msk, batch_ind])
+
+                logging.info('compiled {} batchs using {} examples'.format(len(batchs), len(indexs_shard)))
+                indexs_batchs = [i for i in range(len(batchs))]
+                random.shuffle(indexs_batchs)
+                for ind in indexs_batchs:
+                    yield batchs[ind]
 
 #            length = [len(self.corpus[i]) for i in range(len(self.corpus))]
 #            indexs = np.argsort(np.array(length)) ### from smaller to larger sentences
@@ -207,6 +214,8 @@ class Dataset():
                     logging.info('random sorting shard')
                     indexs = [i for i in range(len(indexs_shard))] ### These are indexs of indexs_shard which are indexs of self.corpus
                     random.shuffle(indexs)
+
+                batchs = []
                 batch_wrd = []
                 batch_ctx = []
                 batch_neg = []
@@ -227,14 +236,22 @@ class Dataset():
                         batch_msk.append(msk)
                         if len(batch_wrd) == self.batch_size:
                             batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                            yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+                            batchs.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
                             batch_wrd = []
                             batch_ctx = []
                             batch_neg = []
                             batch_msk = []
                 if len(batch_wrd):
                     batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                    yield [batch_wrd, batch_ctx, batch_neg, batch_msk]
+                    batchs.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
+
+
+                logging.info('compiled {} batchs using {} examples'.format(len(batchs), len(indexs_shard)))
+                indexs_batchs = [i for i in range(len(batchs))]
+                random.shuffle(indexs_batchs)
+                for ind in indexs_batchs:
+                    yield batchs[ind]
+
 
 #            if self.window == 0:
 #                length = [len(self.corpus[i]) for i in range(len(self.corpus))]
