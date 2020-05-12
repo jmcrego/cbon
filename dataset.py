@@ -50,6 +50,9 @@ class Dataset():
         pOOV = 100.0 * nOOV / ntokens
         logging.info('read {} sentences with {} tokens (%OOV={:.2f})'.format(len(self.corpus), ntokens, pOOV))
 
+        if self.shard_size == 0:
+            self.shard_size = len(self.corpus)
+
         ### subsample
         #if not skip_subsampling:
         #    ntokens = self.SubSample(ntokens)
@@ -131,13 +134,10 @@ class Dataset():
             ### build indexs
             self.indexs = [i for i in range(len(self.corpus))]
             ### shuffle indexs
-            random.shuffle(self.index)
+            random.shuffle(self.indexs)
             first_index = 0
             while first_index < len(self.indexs):
-                if self.shard_size > 0:
-                    next_index = min(first_index + self.shard_size, len(self.indexs))
-                else:
-                    next_index = len(self.indexs)
+                next_index = min(first_index + self.shard_size, len(self.indexs))
                 indexs_shard = self.indexs[first_index:next_index] ### a bunch of indexs of self.corpus
                 first_index = next_index
                 ### this shard is built of indexs_shard, indexes that points to self.indexs
@@ -192,16 +192,13 @@ class Dataset():
             ### build indexs
             self.indexs = [i for i in range(len(self.corpus))]
             ### shuffle indexs
-            random.shuffle(self.index)
+            random.shuffle(self.indexs)
             first_index = 0
             while first_index < len(self.indexs):
-                if self.shard_size > 0:
-                    next_index = min(first_index + self.shard_size, len(self.indexs))
-                else:
-                    next_index = len(self.indexs)
+                next_index = min(first_index + self.shard_size, len(self.indexs))
                 indexs_shard = self.indexs[first_index:next_index]
                 first_index = next_index
-
+                ### this shard is built of indexs_shard, indexes that points to self.indexs
                 if self.window == 0:
                     logging.info('sorting shard by length')
                     length = [len(self.corpus[index]) for index in indexs_shard] #length of sentences in this shard
