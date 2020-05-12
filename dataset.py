@@ -102,7 +102,6 @@ class Dataset():
 
     def add_pad(self, batch_ctx, batch_msk):
         max_len = max([len(x) for x in batch_ctx])
-        print("max={} lens_batch={}".format(max_len,[len(x) for x in batch_ctx]))
         for k in range(len(batch_ctx)):
             addn = max_len - len(batch_ctx[k])
             batch_ctx[k] += [self.idx_pad]*addn
