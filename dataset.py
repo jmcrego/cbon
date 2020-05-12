@@ -189,7 +189,10 @@ class Dataset():
         ### train ############################################
         ######################################################
         elif self.mode == 'train':
-
+            ### build indexs
+            self.indexs = [i for i in range(len(self.corpus))]
+            ### shuffle indexs
+            random.shuffle(self.index)
             first_index = 0
             while first_index < len(self.indexs):
                 if self.shard_size > 0:
