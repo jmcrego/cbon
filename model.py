@@ -159,10 +159,16 @@ class Word2Vec(nn.Module):
         ### Context words are embedded using iEmb
         ###
         ctx_emb = self.NgramsEmbed(batch[1], msk) #[bs,ds]
+        if torch.isnan(ctx_emb).any() or torch.isinf(ctx_emb).any():
+            logging.error('NaN/Inf detected in ctx_emb')
+            sys.exit()
         ###
         ### Center words are embedded using oEmb
         ###
         wrd_emb = self.WordEmbed(batch[0],'oEmb') #[bs,ds]
+        if torch.isnan(wrd_emb).any() or torch.isinf(wrd_emb).any():
+            logging.error('NaN/Inf detected in wrd_emb')
+            sys.exit()
         ###
         ### Negative words are embedded using oEmb
         ###
