@@ -108,13 +108,10 @@ class Word2Vec(nn.Module):
         nn.init.uniform_(self.oEmb.weight, -0.1, 0.1)
 
     def WordEmbed(self, wrd, layer):
-        wrd = torch.as_tensor(wrd) 
+        wrd = torch.as_tensor(wrd)
         if self.iEmb.weight.is_cuda:
             wrd = wrd.cuda()
 
-#        if torch.isnan(wrd).any() or torch.isinf(wrd).any():
-#            logging.error('NaN/Inf detected in input wrd {}'.format(wrd))
-#            sys.exit()            
         if layer == 'iEmb':
             emb = self.iEmb(wrd) #[bs,ds]
         elif layer == 'oEmb':
@@ -148,6 +145,7 @@ class Word2Vec(nn.Module):
         #batch[2] : batch of negative words (list:bs of list:nn)
         #batch[3] : batch of masks for context words (list:bs of list:nc)
         msk = torch.as_tensor(batch[3]) #[bs,n] (positive words are 1.0 others are 0.0)
+        print('msk type {}'.format(msk.type()))
         if self.iEmb.weight.is_cuda:
             msk = msk.cuda()
         ###
