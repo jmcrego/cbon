@@ -29,6 +29,7 @@ class Dataset():
         self.idx_unk = vocab.idx_unk
         self.corpus = []
         self.wrd2n = defaultdict(int)
+        self.total_ngrams = defaultdict(int)
         ntokens = 0
         nOOV = 0
         for file in args.data:
@@ -72,10 +73,12 @@ class Dataset():
         ###
         ctx = []
         for i in range(beg, end): 
-            if idxs[i] == self.idx_unk:
-                continue
             if i == center:
                 continue
+            if idxs[i] == self.idx_unk:
+                continue
+
+            self.total_ngrams[1] += 1
 
             ctx.append(idxs[i])
             #logging.info('[{}] 1-gram_idx={} \'{}\''.format(i, idxs[i], toks[i]))
@@ -92,6 +95,8 @@ class Dataset():
                 idx = self.vocab[ngram]
                 if idx != self.idx_unk:
                     ctx.append(idx)
+                    self.total_ngrams[j-i] += 1
+
                     #logging.info('[{}:{}) {}-gram_idx={} \'{}\''.format(i, j, j-i, idx, ngram))
 
         ###
@@ -239,7 +244,7 @@ class Dataset():
                         wrd = self.corpus[ind][center] #idx
                         ctx, neg = self.get_ctx_neg(self.corpus[ind], center, True) #[idx, idx, ...], [idx, idx, ...]
                         if len(ctx)==0 or len(neg)==0:
-                            print('skipped example due to length 0')
+                            print('skipped example: len(ctx)={} len(neg)={}'.format(len(ctx),len(neg)))
                             continue
                         e = []
                         e.append(wrd) #the word to predict
@@ -247,6 +252,8 @@ class Dataset():
                         e.extend(ctx) #ngrams around [center-window, center+window] used to predict
                         examples.append(e)
                 logging.info('built shard with {} examples'.format(len(examples)))
+                for n,N in self.total_ngrams:
+                    logging.info('{}-grams: {}'.format(n,N))
 
                 ### sort examples by len
                 logging.info('sorting examples in shard by length to minimize padding')
