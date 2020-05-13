@@ -111,7 +111,6 @@ class Word2Vec(nn.Module):
         wrd = torch.as_tensor(wrd)
         if self.iEmb.weight.is_cuda:
             wrd = wrd.cuda()
-        print('wrd type {}'.format(wrd.type()))
 
         if layer == 'iEmb':
             emb = self.iEmb(wrd) #[bs,ds]
@@ -148,7 +147,6 @@ class Word2Vec(nn.Module):
         msk = torch.as_tensor(batch[3]) #[bs,n] (positive words are 1.0 others are 0.0)
         if self.iEmb.weight.is_cuda:
             msk = msk.cuda()
-        print('msk type {}'.format(msk.type()))
         ###
         #Context words are embedded using iEmb
         ###
