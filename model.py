@@ -143,17 +143,17 @@ class Word2Vec(nn.Module):
         return ngrams_emb
 
     def forward(self, batch):
-        #batch[0] : batch of center words (list)
-        #batch[1] : batch of context words (list of list)
-        #batch[2] : batch of negative words (list of list)
-        #batch[3] : batch of masks for positive words (list of list)
+        #batch[0] : batch of center words (list:bs)
+        #batch[1] : batch of context words (list:bs of list:nc)
+        #batch[2] : batch of negative words (list:bs of list:nn)
+        #batch[3] : batch of masks for context words (list:bs of list:nc)
         msk = torch.as_tensor(batch[3]) #[bs,n] (positive words are 1.0 others are 0.0)
         if self.iEmb.weight.is_cuda:
             msk = msk.cuda()
         ###
         #Context words are embedded using iEmb
         ###
-        ctx_emb = self.NgramsEmbed(batch[1], msk)
+        ctx_emb = self.NgramsEmbed(batch[1], msk) #[bs,ds]
         ###
         #Center words are embedded using oEmb
         ###
@@ -161,7 +161,7 @@ class Word2Vec(nn.Module):
         ###
         #Negative words are embedded using oEmb
         ###
-        neg_emb = self.WordEmbed(batch[2],'oEmb').neg() #[bs,n,ds]
+        neg_emb = self.WordEmbed(batch[2],'oEmb').neg() #[bs,nn,ds]
         ###
         ### computing positive words loss
         ###

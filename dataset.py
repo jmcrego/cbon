@@ -50,14 +50,60 @@ class Dataset():
         pOOV = 100.0 * nOOV / ntokens
         logging.info('read {} sentences with {} tokens (%OOV={:.2f})'.format(len(self.corpus), ntokens, pOOV))
 
-        if self.shard_size == 0:
-            self.shard_size = len(self.corpus)
-
         ### subsample
         #if not skip_subsampling:
         #    ntokens = self.SubSample(ntokens)
         #    logging.info('subsampled to {} tokens'.format(ntokens))
 
+
+    def get_ctx_neg(self, idxs, center, do_neg=False):
+        toks = [self.vocab[idxs[i]] for i in range(len(idxs))]
+        #logging.info('center={}:{} {}'.format(center, toks[center], ' '.join(toks)))
+
+        if self.window > 0:
+            beg = max(center - self.window, 0)
+            end = min(center + self.window + 1, len(idxs))
+        else:
+            beg = 0
+            end = len(idxs)
+
+        ###
+        ### find all ngrams
+        ###
+        ctx = []
+        for i in range(beg, end): 
+            if idxs[i] == self.idx_unk:
+                continue
+            if i == center:
+                continue
+
+            ctx.append(idxs[i])
+            #logging.info('[{}] 1-gram_idx={} \'{}\''.format(i, idxs[i], toks[i]))
+
+            for j in range(i+2,i+self.voc_maxn+1): 
+                if j > len(idxs):
+                    break
+                if center>=i and center<j:
+                    break
+                if self.idx_unk in idxs[i:j]:
+                    break
+
+                ngram = ' '.join([str(k) for k in idxs[i:j]])
+                idx = self.vocab[ngram]
+                if idx != self.idx_unk:
+                    ctx.append(idx)
+                    #logging.info('[{}:{}) {}-gram_idx={} \'{}\''.format(i, j, j-i, idx, ngram))
+
+        ###
+        ### find Negative words
+        ###
+        neg = []
+        while do_neg and len(neg) < self.n_negs:
+            idx = random.randint(2, self.vocab_size-2) #do not consider idx=0 (pad) nor idx=1 (unk)
+            if idx != idxs[center] and idx not in ctx:
+                neg.append(idx)
+
+        return ctx, neg
 
     def get_context(self, toks, center=None):
         ctx = []
@@ -92,7 +138,7 @@ class Dataset():
                 msk.append(True)
         return ctx, msk
 
-    def get_negatives(self, wrd, ctx):
+    def get_neg(self, wrd, ctx):
         neg = []
         while len(neg) < self.n_negs:
             idx = random.randint(2, self.vocab_size-2) #do not consider idx=0 (pad) nor idx=1 (unk)
@@ -102,6 +148,7 @@ class Dataset():
 
     def add_pad(self, batch_ctx, batch_msk):
         max_len = max([len(x) for x in batch_ctx])
+        #logging.info('max_len={} lens: {}'.format(max_len, [len(x) for x in batch_ctx]))
         for k in range(len(batch_ctx)):
             addn = max_len - len(batch_ctx[k])
             batch_ctx[k] += [self.idx_pad]*addn
@@ -175,60 +222,65 @@ class Dataset():
         ######################################################
         elif self.mode == 'train':
             ### build indexs
-            self.indexs = [i for i in range(len(self.corpus))]
+            indexs = [i for i in range(len(self.corpus))]
             ### shuffle indexs
-            random.shuffle(self.indexs)
-            first_index = 0
-            while first_index < len(self.indexs):
-                next_index = min(first_index + self.shard_size, len(self.indexs))
-                indexs_shard = self.indexs[first_index:next_index]
-                first_index = next_index
-                ### this shard is built of indexs_shard, indexes that points to self.indexs
-                if self.window == 0:
-                    logging.info('sorting examples in shard by length')
-                    length = [len(self.corpus[index]) for index in indexs_shard] #length of sentences in this shard
-                    indexs = np.argsort(np.array(length)) ### These are indexs of indexs_shard which are indexs of self.corpus
-                else:
-                    logging.info('randomly sorting examples in shard')
-                    indexs = [i for i in range(len(indexs_shard))] ### These are indexs of indexs_shard which are indexs of self.corpus
-                    random.shuffle(indexs)
+            random.shuffle(indexs)
 
-                batchs = []
+            first_index = 0
+            while first_index < len(indexs):
+                next_index = min(first_index + self.shard_size, len(indexs))
+                indexs_shard = indexs[first_index:next_index]
+                first_index = next_index
+                ### indexs_shard contains a subset of the indexes stored in self.indexs
+                logging.info('built shard with {} out of {} sentences'.format(len(indexs_shard),len(indexs)))
+                examples = [] ### ind (position in corpus), wrd (word to predict or empty), neg (n negative words or empty), ctx (context or sentence)
+                for ind in indexs_shard:
+                    for center in range(len(self.corpus[ind])):
+                        wrd = self.corpus[ind][center] #idx
+                        ctx, neg = self.get_ctx_neg(self.corpus[ind],center,True) #[idx, idx, ...], [idx, idx, ...]
+                        e = []
+                        e.append(wrd) #the word to predict
+                        e.extend(neg) #n_negs negative words
+                        e.extend(ctx) #ngrams around [center-window, center+window] used to predict
+                        examples.append(e)
+                logging.info('shard contains {} examples'.format(len(examples)))
+
+                ### sort examples by len
+                logging.info('sorting examples in shard by length to minimize padding')
+                length = [len(examples[k]) for k in range(len(examples))] #length of sentences in this shard
+                index_examples = np.argsort(np.array(length)) ### These are indexs of examples
+
+                batch = []
                 batch_wrd = []
                 batch_ctx = []
                 batch_neg = []
                 batch_msk = []
-                batches = []
-                for ind in indexs:
-                    ind = indexs_shard[ind]
-                    toks = self.corpus[ind]
-                    if len(toks) < 2: ### may have been subsampled
-                        continue
-                    for i in range(len(toks)):
-                        wrd = toks[i]
-                        ctx, msk = self.get_context(toks,i)
-                        neg = self.get_negatives(wrd,ctx)
-                        batch_wrd.append(wrd)
-                        batch_ctx.append(ctx)
-                        batch_neg.append(neg)
-                        batch_msk.append(msk)
-                        if len(batch_wrd) == self.batch_size:
-                            batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                            batchs.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
-                            batch_wrd = []
-                            batch_ctx = []
-                            batch_neg = []
-                            batch_msk = []
+                for ind in index_examples:
+                    e = examples[ind]
+                    wrd = e[0]
+                    neg = e[1:self.n_negs+2]
+                    ctx = e[self.n_negs+2:]
+                    msk = [True] * len(ctx)
+                    batch_wrd.append(wrd)
+                    batch_ctx.append(ctx)
+                    batch_neg.append(neg)
+                    batch_msk.append(msk)
+                    if len(batch_wrd) == self.batch_size:
+                        batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
+                        batch.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
+                        batch_wrd = []
+                        batch_ctx = []
+                        batch_neg = []
+                        batch_msk = []
                 if len(batch_wrd):
                     batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
-                    batchs.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
+                    batch.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
+                logging.info('shard compiled in {} batchs'.format(len(batch)))
 
-
-                logging.info('compiled {} batchs using {} examples'.format(len(batchs), len(indexs_shard)))
-                indexs_batchs = [i for i in range(len(batchs))]
+                indexs_batchs = [i for i in range(len(batch))]
                 random.shuffle(indexs_batchs)
                 for ind in indexs_batchs:
-                    yield batchs[ind]
+                    yield batch[ind]
 
         ######################################################
         ### error ############################################

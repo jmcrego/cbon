@@ -267,7 +267,7 @@ class Args():
    -n_negs          INT : number of negative samples generated      (10)
    -skip_subsampling    : do not subsample corpora                  (False)
    -batch_size      INT : batch size used                           (1024)
-   -shard_size      INT : number of examples in a shard (0 for all) (500000)
+   -shard_size      INT : number of sentences in shard (0 for all)  (500000)
    -force_ngrams        : use pooling for unseen ngrams             (False) NOT YET IMPLEMENTED
    -max_epochs      INT : stop learning after this number of epochs (1)
    -learning_rate FLOAT : learning rate for Adam optimizer          (0.001)
