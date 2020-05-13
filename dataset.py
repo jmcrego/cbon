@@ -248,16 +248,16 @@ class Dataset():
                         if len(ctx)==0 or len(neg)==0:
                             continue
                         e = []
-                        #logging.info('wrd: {}'.format(wrd))
-                        #logging.info('ctx: {}'.format(ctx))
-                        #logging.info('neg: {}'.format(neg))
+                        logging.info('wrd: {}'.format(wrd))
+                        logging.info('ctx: {}'.format(ctx))
+                        logging.info('neg: {}'.format(neg))
                         e.append(wrd) #the word to predict
                         e.extend(neg) #n_negs negative words
                         e.extend(ctx) #ngrams around [center-window, center+window] used to predict
                         examples.append(e)
                 logging.info('built shard with {} examples'.format(len(examples)))
                 for n,N in self.total_ngrams.items():
-                    logging.info('{}-grams: {}'.format(n,N))
+                    logging.info('ctx {}-grams: {}'.format(n,N))
 
                 ### sort examples by len
                 logging.info('sorting examples in shard by length to minimize padding')
