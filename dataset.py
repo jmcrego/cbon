@@ -252,7 +252,7 @@ class Dataset():
                         e.extend(ctx) #ngrams around [center-window, center+window] used to predict
                         examples.append(e)
                 logging.info('built shard with {} examples'.format(len(examples)))
-                for n,N in self.total_ngrams:
+                for n,N in self.total_ngrams.items():
                     logging.info('{}-grams: {}'.format(n,N))
 
                 ### sort examples by len
