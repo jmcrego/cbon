@@ -17,8 +17,8 @@ from dataset import Dataset
 from vocab import Vocab
 from tokenizer import OpenNMTTokenizer
 
-min_sigmoid = 1e-06
-max_sigmoid = 1.0 - 1e-06
+min_sigmoid = 1e-05
+max_sigmoid = 1.0 - 1e-05
 
 def save_model(pattern, model, n_steps, keep_last_n):
     file = pattern + '.model.{:09d}.pth'.format(n_steps)
@@ -179,7 +179,12 @@ class Word2Vec(nn.Module):
         loss += err.mean()
 
         if torch.isnan(loss).any() or torch.isinf(loss).any():
-            logging.error('NaN/Inf detected in loss for batch')
+            logging.error('NaN/Inf detected in loss')
             sys.exit()
         return loss
+
+
+
+
+
 
