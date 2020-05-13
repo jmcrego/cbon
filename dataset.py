@@ -248,9 +248,9 @@ class Dataset():
                         if len(ctx)==0 or len(neg)==0:
                             continue
                         e = []
-                        logging.info('wrd: {}'.format(wrd))
-                        logging.info('ctx: {}'.format(ctx))
-                        logging.info('neg: {}'.format(neg))
+                        #logging.info('wrd: {}'.format(wrd))
+                        #logging.info('ctx: {}'.format(ctx))
+                        #logging.info('neg: {}'.format(neg))
                         e.append(wrd) #the word to predict
                         e.extend(neg) #n_negs negative words
                         e.extend(ctx) #ngrams around [center-window, center+window] used to predict
