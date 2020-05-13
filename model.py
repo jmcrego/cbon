@@ -17,8 +17,8 @@ from dataset import Dataset
 from vocab import Vocab
 from tokenizer import OpenNMTTokenizer
 
-min_sigmoid = 1e-05
-max_sigmoid = 1.0 - 1e-05
+min_sigmoid = 1e-06
+max_sigmoid = 1.0 - 1e-06
 
 def save_model(pattern, model, n_steps, keep_last_n):
     file = pattern + '.model.{:09d}.pth'.format(n_steps)
@@ -171,16 +171,16 @@ class Word2Vec(nn.Module):
         #i use clamp to prevent NaN/Inf appear when computing the log of 1.0/0.0
         err = torch.bmm(ctx_emb.unsqueeze(1), wrd_emb.unsqueeze(-1)).squeeze().sigmoid().clamp(min_sigmoid, max_sigmoid).log().neg() #[bs,1,ds] x [bs,ds,1] = [bs,1] = > [bs]
         if torch.isnan(err).any() or torch.isinf(err).any():
-            logging.error('NaN/Inf detected in positive words err')
+            logging.error('NaN/Inf detected in positive words err={}'.format(err))
             sys.exit()
         loss = err.mean() # mean errors of examples in this batch
         ###
         ### computing negative words loss
-        ###
+            ###
         err = torch.bmm(ctx_emb.unsqueeze(1), neg_emb.transpose(2,1)).squeeze().sigmoid().clamp(min_sigmoid, max_sigmoid).log().neg() #[bs,1,ds] x [bs,ds,n] = [bs,1,n] = > [bs,n]
         err = torch.sum(err, dim=1) #[bs] (sum of errors of all negative words) (not averaged)
         if torch.isnan(err).any() or torch.isinf(err).any():
-            logging.error('NaN/Inf detected in negative words err')
+            logging.error('NaN/Inf detected in negative words err={}'.format(err))
             sys.exit()
         loss += err.mean()
 
