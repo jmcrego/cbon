@@ -143,10 +143,10 @@ class Word2Vec(nn.Module):
         return ngrams_emb
 
     def forward(self, batch):
-        #batch[0] : batch of center words (list:bs)
-        #batch[1] : batch of context words (list:bs of list:nc)
-        #batch[2] : batch of negative words (list:bs of list:nn)
-        #batch[3] : batch of masks for context words (list:bs of list:nc)
+        #batch[0] : batch of center (list:bs)
+        #batch[1] : batch of context (list:bs of list:nc)
+        #batch[2] : batch of negative (list:bs of list:nn)
+        #batch[3] : batch of masks for context (list:bs of list:nc)
         msk = torch.as_tensor(batch[3]) #[bs,n] (positive words are 1.0 others are 0.0)
         if msk.type() != 'torch.BoolTensor':
             logging.error('bad mks type {}'.format(msk.type()))
@@ -154,19 +154,19 @@ class Word2Vec(nn.Module):
         if self.iEmb.weight.is_cuda:
             msk = msk.cuda()
         ###
-        #Context words are embedded using iEmb
+        ### Context words are embedded using iEmb
         ###
         ctx_emb = self.NgramsEmbed(batch[1], msk) #[bs,ds]
         ###
-        #Center words are embedded using oEmb
+        ### Center words are embedded using oEmb
         ###
         wrd_emb = self.WordEmbed(batch[0],'oEmb') #[bs,ds]
         ###
-        #Negative words are embedded using oEmb
+        ### Negative words are embedded using oEmb
         ###
         neg_emb = self.WordEmbed(batch[2],'oEmb').neg() #[bs,nn,ds]
         ###
-        ### computing positive words loss
+        ### Computing positive words loss
         ###
         #i use clamp to prevent NaN/Inf appear when computing the log of 1.0/0.0
         err = torch.bmm(ctx_emb.unsqueeze(1), wrd_emb.unsqueeze(-1)).squeeze().sigmoid().clamp(min_sigmoid, max_sigmoid).log().neg() #[bs,1,ds] x [bs,ds,1] = [bs,1] = > [bs]
@@ -175,8 +175,8 @@ class Word2Vec(nn.Module):
             sys.exit()
         loss = err.mean() # mean errors of examples in this batch
         ###
-        ### computing negative words loss
-            ###
+        ### Computing negative words loss
+        ###
         err = torch.bmm(ctx_emb.unsqueeze(1), neg_emb.transpose(2,1)).squeeze().sigmoid().clamp(min_sigmoid, max_sigmoid).log().neg() #[bs,1,ds] x [bs,ds,n] = [bs,1,n] = > [bs,n]
         err = torch.sum(err, dim=1) #[bs] (sum of errors of all negative words) (not averaged)
         if torch.isnan(err).any() or torch.isinf(err).any():
