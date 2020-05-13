@@ -244,7 +244,6 @@ class Dataset():
                         wrd = self.corpus[ind][center] #idx
                         ctx, neg = self.get_ctx_neg(self.corpus[ind], center, True) #[idx, idx, ...], [idx, idx, ...]
                         if len(ctx)==0 or len(neg)==0:
-                            print('skipped example: len(ctx)={} len(neg)={}'.format(len(ctx),len(neg)))
                             continue
                         e = []
                         e.append(wrd) #the word to predict
