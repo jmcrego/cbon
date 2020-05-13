@@ -260,7 +260,7 @@ class Dataset():
                     logging.info('ctx {}-grams: {}'.format(n,N))
 
                 ### sort examples by len
-                logging.info('sorting examples in shard by length to minimize padding')
+                logging.info('sorting examples in shard by number of ngrams to minimize padding')
                 length = [len(examples[k]) for k in range(len(examples))] #length of sentences in this shard
                 index_examples = np.argsort(np.array(length)) ### These are indexs of examples
 

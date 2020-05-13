@@ -153,6 +153,8 @@ class Word2Vec(nn.Module):
             sys.exit()
         if self.iEmb.weight.is_cuda:
             msk = msk.cuda()
+
+        logging.info('bs={}'.format(len(msk)))
         ###
         ### Context words are embedded using iEmb
         ###
