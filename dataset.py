@@ -237,7 +237,10 @@ class Dataset():
                 for ind in indexs_shard:
                     for center in range(len(self.corpus[ind])):
                         wrd = self.corpus[ind][center] #idx
-                        ctx, neg = self.get_ctx_neg(self.corpus[ind],center,True) #[idx, idx, ...], [idx, idx, ...]
+                        ctx, neg = self.get_ctx_neg(self.corpus[ind], center, True) #[idx, idx, ...], [idx, idx, ...]
+                        if len(ctx)==0 or len(neg)==0:
+                            print('skipped example due to length 0')
+                            continue
                         e = []
                         e.append(wrd) #the word to predict
                         e.extend(neg) #n_negs negative words

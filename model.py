@@ -146,7 +146,6 @@ class Word2Vec(nn.Module):
         #batch[2] : batch of negative words (list:bs of list:nn)
         #batch[3] : batch of masks for context words (list:bs of list:nc)
         msk = torch.as_tensor(batch[3]) #[bs,n] (positive words are 1.0 others are 0.0)
-        print('msk type {}'.format(msk.type()))
         if self.iEmb.weight.is_cuda:
             msk = msk.cuda()
         print('msk type {}'.format(msk.type()))
