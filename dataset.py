@@ -274,6 +274,9 @@ class Dataset():
                     wrd = e[0]
                     neg = e[1:self.n_negs+2]
                     ctx = e[self.n_negs+2:]
+                    if len(ctx) == 0:
+                        logging.error('context length is 0')
+                        sys.exit()
                     msk = [True] * len(ctx)
                     batch_wrd.append(wrd)
                     batch_ctx.append(ctx)
