@@ -272,10 +272,10 @@ class Dataset():
                 for ind in index_examples:
                     e = examples[ind]
                     wrd = e[0]
-                    neg = e[1:self.n_negs+2]
-                    ctx = e[self.n_negs+2:]
+                    neg = e[1:self.n_negs+1]
+                    ctx = e[self.n_negs+1:]
                     if len(ctx) == 0:
-                        logging.error('context length is 0')
+                        logging.error('ctx length is 0')
                         sys.exit()
                     msk = [True] * len(ctx)
                     batch_wrd.append(wrd)
@@ -295,7 +295,7 @@ class Dataset():
                 logging.info('compiled {} batchs in shard'.format(len(batch)))
 
                 indexs_batchs = [i for i in range(len(batch))]
-                #random.shuffle(indexs_batchs)
+                random.shuffle(indexs_batchs)
                 for ind in indexs_batchs:
                     yield batch[ind]
 
