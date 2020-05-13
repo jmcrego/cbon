@@ -173,6 +173,9 @@ class Word2Vec(nn.Module):
         ### Negative words are embedded using oEmb
         ###
         neg_emb = self.WordEmbed(batch[2],'oEmb').neg() #[bs,nn,ds]
+        if torch.isnan(neg_emb).any() or torch.isinf(neg_emb).any():
+            logging.error('NaN/Inf detected in neg_emb')
+            sys.exit()
         ###
         ### Computing positive words loss
         ###
