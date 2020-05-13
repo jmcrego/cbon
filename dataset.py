@@ -242,13 +242,15 @@ class Dataset():
                 for ind in indexs_shard:
                     for center in range(len(self.corpus[ind])):
                         wrd = self.corpus[ind][center] #idx
+                        if wrd < 2: ### i dont want to predict <unk> or <pad>
+                            continue
                         ctx, neg = self.get_ctx_neg(self.corpus[ind], center, True) #[idx, idx, ...], [idx, idx, ...]
                         if len(ctx)==0 or len(neg)==0:
                             continue
                         e = []
-                        logging('wrd: {}'.format(wrd))
-                        logging('ctx: {}'.format(ctx))
-                        logging('neg: {}'.format(neg))
+                        #logging.info('wrd: {}'.format(wrd))
+                        #logging.info('ctx: {}'.format(ctx))
+                        #logging.info('neg: {}'.format(neg))
                         e.append(wrd) #the word to predict
                         e.extend(neg) #n_negs negative words
                         e.extend(ctx) #ngrams around [center-window, center+window] used to predict
