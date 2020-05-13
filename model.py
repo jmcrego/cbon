@@ -109,6 +109,9 @@ class Word2Vec(nn.Module):
 
     def WordEmbed(self, wrd, layer):
         wrd = torch.as_tensor(wrd)
+        if wrd.type() != 'torch.LongTensor':
+            logging.error('bad wrd type {}'.format(wrd.type()))
+            sys.exit()
         if self.iEmb.weight.is_cuda:
             wrd = wrd.cuda()
 
@@ -145,6 +148,9 @@ class Word2Vec(nn.Module):
         #batch[2] : batch of negative words (list:bs of list:nn)
         #batch[3] : batch of masks for context words (list:bs of list:nc)
         msk = torch.as_tensor(batch[3]) #[bs,n] (positive words are 1.0 others are 0.0)
+        if msk.type() != 'torch.BoolTensor':
+            logging.error('bad mks type {}'.format(msk.type()))
+            sys.exit()
         if self.iEmb.weight.is_cuda:
             msk = msk.cuda()
         ###
@@ -173,7 +179,7 @@ class Word2Vec(nn.Module):
         loss += err.mean()
 
         if torch.isnan(loss).any() or torch.isinf(loss).any():
-            logging.error('NaN/Inf detected in cbow_loss for batch {}'.format(batch))
+            logging.error('NaN/Inf detected in loss for batch {}'.format(batch))
             sys.exit()
         return loss
 
