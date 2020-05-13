@@ -179,7 +179,7 @@ class Word2Vec(nn.Module):
         loss += err.mean()
 
         if torch.isnan(loss).any() or torch.isinf(loss).any():
-            logging.error('NaN/Inf detected in loss for batch {}'.format(batch))
+            logging.error('NaN/Inf detected in loss for batch')
             sys.exit()
         return loss
 
