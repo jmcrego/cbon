@@ -255,7 +255,7 @@ class Dataset():
                         e.extend(neg) #n_negs negative words
                         e.extend(ctx) #ngrams around [center-window, center+window] used to predict
                         examples.append(e)
-                logging.info('built shard with {} examples'.format(len(examples)))
+                logging.info('compiled shard with {} examples'.format(len(examples)))
                 for n,N in self.total_ngrams.items():
                     logging.info('ctx {}-grams: {}'.format(n,N))
 
@@ -292,7 +292,7 @@ class Dataset():
                 if len(batch_wrd):
                     batch_ctx, batch_msk = self.add_pad(batch_ctx, batch_msk)
                     batch.append([batch_wrd, batch_ctx, batch_neg, batch_msk])
-                logging.info('compiled {} batchs in shard'.format(len(batch)))
+                logging.info('found {} batchs in shard'.format(len(batch)))
 
                 indexs_batchs = [i for i in range(len(batch))]
                 random.shuffle(indexs_batchs)
