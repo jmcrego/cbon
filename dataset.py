@@ -292,7 +292,7 @@ class Dataset():
                 logging.info('compiled {} batchs in shard'.format(len(batch)))
 
                 indexs_batchs = [i for i in range(len(batch))]
-                random.shuffle(indexs_batchs)
+                #random.shuffle(indexs_batchs)
                 for ind in indexs_batchs:
                     yield batch[ind]
 
