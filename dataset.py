@@ -150,7 +150,7 @@ class Dataset():
             snt = self.get_snt(self.corpus[ind]) #[idx, idx, ...], [i]
 #            if len(snt)==0: # at least one ngram in snt
 #                continue
-#            e = []
+            e = []
             #logging.info('snt: {}'.format(snt))
             e.append(ind) #position in corpus
             e.extend(snt) #ngrams in sentence
