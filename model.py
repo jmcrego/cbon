@@ -58,7 +58,7 @@ def load_model(pattern, vocab):
             sys.exit()
         model = Word2Vec(vocab_size, embedding_size, pooling, idx_pad)
         model.load_state_dict(checkpoint['model'])
-        logging.info('loaded checkpoint {} [{},{}] pooling={}'.format(file,len(vocab),embedding_size,pooling))
+        logging.info('loaded checkpoint {} [voc:{},emb:{}] pooling={}'.format(file,len(vocab),embedding_size,pooling))
     return model, n_steps
 
 def save_optim(pattern, optimizer):
