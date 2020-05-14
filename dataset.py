@@ -148,9 +148,9 @@ class Dataset():
         examples = [] ### ind (position in corpus), wrd (word to predict or empty), neg (n negative words or empty), ctx (context or sentence)
         for ind in indexs_shard:
             snt = self.get_snt(self.corpus[ind]) #[idx, idx, ...], [i]
-            if len(snt)==0: # at least one ngram in snt
-                continue
-            e = []
+#            if len(snt)==0: # at least one ngram in snt
+#                continue
+#            e = []
             #logging.info('snt: {}'.format(snt))
             e.append(ind) #position in corpus
             e.extend(snt) #ngrams in sentence
