@@ -16,6 +16,7 @@ class Vocab():
         self.tok_to_idx = {} 
         self.idx_to_tok = [] 
         self.max_ngram = 1
+        self.use_bos_eos = False
 
     def read(self, file):
         if not os.path.exists(file):
@@ -29,25 +30,31 @@ class Vocab():
                 l = l.decode('utf8')
             tok = l.strip(' \n')
             if first_line:
-                self.max_ngram = int(tok)
+                info = tok.split()
+                if len(info)!=2:
+                    logging.error('erroneous first line in vocab (must contain: ngram use_bos_eos)')
+                    sys.exit()
+                self.max_ngram = int(info[0])
+                self.use_bos_eos = bool(info[1])
                 first_line = False
                 continue
             if tok not in self.tok_to_idx:
                 self.idx_to_tok.append(tok)
                 self.tok_to_idx[tok] = len(self.tok_to_idx)
         f.close()
-        logging.info('read vocab ({} entries) from {}'.format(len(self.idx_to_tok),file))
+        logging.info('read vocab ({} entries, max_ngram={} use_bos_eos={}) from {}'.format(len(self.idx_to_tok), self.max_ngram, self.use_bos_eos, file))
 
     def dump(self, file):
         f = open(file, "w")
-        f.write(str(self.max_ngram)+'\n')
+        f.write(str(self.max_ngram)+' '+str(self.use_bos_eos)+'\n')
         for tok in self.idx_to_tok:
             f.write(tok+'\n')
         f.close()
-        logging.info('written vocab ({} entries) into {}'.format(len(self.idx_to_tok),file))
+        logging.info('written vocab ({} entries) into {}'.format(len(self.idx_to_tok), file))
 
-    def build(self,files,token,min_freq=5,max_size=0,max_ngram=1):
+    def build(self,files,token,min_freq=5,max_size=0,max_ngram=1,use_bos_eos=False):
         self.max_ngram = max_ngram
+        self.use_bos_eos = use_bos_eos
         self.tok_to_frq = defaultdict(int)
         for file in files:
             f, is_gzip = open_read(file)
@@ -55,7 +62,12 @@ class Vocab():
                 if is_gzip:
                     l = l.decode('utf8')
                 toks = [] 
-                for tok in token.tokenize(l.strip(' \n')):
+                sentoks = token.tokenize(l.strip(' \n'))
+                if self.use_bos_eos:
+                    sentoks.insert(0,'<bos>')
+                    sentoks.append('<eos>')
+
+                for tok in sentoks:
                     toks.append(tok)
                     for n in range(max_ngram): #if max_ngram is 2 then n is 0, 1
                         if len(toks) > n:

@@ -39,7 +39,7 @@ def do_preprocess(args):
     ###
     token = OpenNMTTokenizer(args.name + '.token')
     vocab = Vocab()
-    vocab.build(args.data, token, min_freq=args.voc_minf, max_size=args.voc_maxs, max_ngram=args.voc_maxn)
+    vocab.build(args.data, token, min_freq=args.voc_minf, max_size=args.voc_maxs, max_ngram=args.voc_maxn, use_bos_eos=args.use_bos_eos)
     vocab.dump(args.name + '.vocab')
 
 def do_train(args):
@@ -47,6 +47,7 @@ def do_train(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.voc_maxn = vocab.max_ngram
+    args.use_bos_eos = vocab.use_bos_eos
 
     model, n_steps = load_model(args.name, vocab)
     if model is None:
@@ -56,7 +57,7 @@ def do_train(args):
         model.cuda()
 
     optimizer = load_build_optim(args.name, model, args.learning_rate, args.beta1, args.beta2, args.eps)
-    dataset = Dataset(args, token, vocab, skip_subsampling=args.skip_subsampling)
+    dataset = Dataset(args, token, vocab)
     n_epochs = 0
     losses = []
     while True:
@@ -101,7 +102,7 @@ def do_sentence_vectors(args):
     if args.cuda:
         model.cuda()
 
-    dataset = Dataset(args, token, vocab, skip_subsampling=True)
+    dataset = Dataset(args, token, vocab)
     with torch.no_grad():
         model.eval()
         for batch in dataset:
@@ -134,7 +135,7 @@ def do_word_vectors(args):
     if args.cuda:
         model.cuda()
 
-    dataset = Dataset(args, token, vocab, skip_subsampling=True)
+    dataset = Dataset(args, token, vocab)
     with torch.no_grad():
         model.eval()
         for batch in dataset:
@@ -174,7 +175,7 @@ def do_word_similarity(args):
         logging.error('bad -sim option {}'.format(args.sim))
         sys.exit()
 
-    dataset = Dataset(args, token, vocab, skip_subsampling=True)
+    dataset = Dataset(args, token, vocab)
     with torch.no_grad():
         model.eval()
         voc_i = [i for i in range(0,len(vocab))]
@@ -225,6 +226,7 @@ class Args():
         self.voc_maxs = 0
         self.voc_maxn = 1
         self.tok_conf = None
+        self.use_bos_eos = False
         self.train = None
         self.shard_size = 500000
         self.pooling = 'avg'
@@ -237,7 +239,6 @@ class Args():
         self.eps = 1e-08
         self.beta1 = 0.9
         self.beta2 = 0.999
-        self.skip_subsampling = False    
         self.keep_last_n = 5
         self.save_every_n_steps = 5000
         self.report_every_n_steps = 500
@@ -260,12 +261,12 @@ class Args():
    -voc_maxs        INT : max size of vocabulary (0 for unlimitted) (0)
    -voc_maxn        INT : consider up to this word ngrams           (1)
    -tok_conf       FILE : YAML file with onmt tokenization options  (space)
+   -use_bos_eos         : use <bos>/<eos> in begin/end of sentence  (False)
  -------- When learning ------------------------------------------------------
    -pooling      STRING : max, avg, sum                             (avg)
    -embedding_size  INT : embedding dimension                       (300)
    -window          INT : window size (use 0 for whole sentence)    (5)
    -n_negs          INT : number of negative samples generated      (10)
-   -skip_subsampling    : do not subsample corpora                  (False)
    -batch_size      INT : batch size used                           (1024)
    -shard_size      INT : number of sentences in shard (0 for all)  (500000)
    -force_ngrams        : use pooling for unseen ngrams             (False) NOT YET IMPLEMENTED
@@ -304,6 +305,7 @@ class Args():
             elif (tok=="-voc_maxs" and len(argv)): self.voc_maxs = int(argv.pop(0))
             elif (tok=="-voc_maxn" and len(argv)): self.voc_maxn = int(argv.pop(0))
             elif (tok=="-tok_conf" and len(argv)): self.tok_conf = argv.pop(0)
+            elif (tok=="-use_bos_eos"): self.use_bos_eos = True
             elif (tok=="-shard_size" and len(argv)): self.shard_size = int(argv.pop(0))
             elif (tok=="-batch_size" and len(argv)): self.batch_size = int(argv.pop(0))
             elif (tok=="-max_epochs" and len(argv)): self.max_epochs = int(argv.pop(0))
@@ -314,7 +316,6 @@ class Args():
             elif (tok=="-eps" and len(argv)): self.eps = float(argv.pop(0))
             elif (tok=="-beta1" and len(argv)): self.beta1 = float(argv.pop(0))
             elif (tok=="-beta2" and len(argv)): self.beta2 = float(argv.pop(0))
-            elif (tok=="-skip_subsampling"): self.skip_subsampling = True
             elif (tok=="-keep_last" and len(argv)): self.keep_last_n = int(argv.pop(0))
             elif (tok=="-save_every" and len(argv)): self.save_every_n_steps = int(argv.pop(0))
             elif (tok=="-report_every" and len(argv)): self.report_every_n_steps = int(argv.pop(0))
