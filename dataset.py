@@ -57,102 +57,6 @@ class Dataset():
         #    logging.info('subsampled to {} tokens'.format(ntokens))
 
 
-    def get_ctx_neg(self, idxs, center):
-        toks = [self.vocab[idxs[i]] for i in range(len(idxs))]
-        #logging.info('center={}:{} {}'.format(center, toks[center], ' '.join(toks)))
-
-        if self.window > 0:
-            beg = max(center - self.window, 0)
-            end = min(center + self.window + 1, len(idxs))
-        else:
-            beg = 0
-            end = len(idxs)
-
-        ###
-        ### find all ngrams
-        ###
-        ctx = []
-        for i in range(beg, end): 
-            if i == center:
-                continue
-            if idxs[i] == self.idx_unk:
-                continue
-
-            self.total_ngrams[1] += 1
-
-            ctx.append(idxs[i])
-            #logging.info('[{}] 1-gram_idx={} \'{}\''.format(i, idxs[i], toks[i]))
-
-            for j in range(i+2,i+self.voc_maxn+1): 
-                if j > len(idxs):
-                    break
-                if center>=i and center<j:
-                    break
-                if self.idx_unk in idxs[i:j]:
-                    break
-
-                ngram = ' '.join([str(k) for k in idxs[i:j]])
-                idx = self.vocab[ngram]
-                if idx != self.idx_unk:
-                    ctx.append(idx)
-                    self.total_ngrams[j-i] += 1
-
-                    #logging.info('[{}:{}) {}-gram_idx={} \'{}\''.format(i, j, j-i, idx, ngram))
-
-        ###
-        ### find Negative words
-        ###
-        neg = []
-        while len(neg) < self.n_negs:
-            idx = random.randint(2, self.vocab_size-2) #do not consider idx=0 (pad) nor idx=1 (unk)
-            if idx != idxs[center] and idx not in ctx:
-                neg.append(idx)
-
-        return ctx, neg
-
-    def get_snt(self, idxs):
-        toks = [self.vocab[idxs[i]] for i in range(len(idxs))]
-        #logging.info('center={}:{} {}'.format(center, toks[center], ' '.join(toks)))
-        beg = 0
-        end = len(idxs)
-        ###
-        ### find all ngrams
-        ###
-        snt = []
-        for i in range(beg, end): 
-            if idxs[i] == self.idx_unk:
-                continue
-            self.total_ngrams[1] += 1
-            snt.append(idxs[i])
-            #logging.info('[{}] 1-gram_idx={} \'{}\''.format(i, idxs[i], toks[i]))
-            for j in range(i+2,i+self.voc_maxn+1): 
-                if j > len(idxs):
-                    break
-                if self.idx_unk in idxs[i:j]:
-                    break
-                ngram = ' '.join([str(k) for k in idxs[i:j]])
-                idx = self.vocab[ngram]
-                if idx != self.idx_unk:
-                    snt.append(idx)
-                    self.total_ngrams[j-i] += 1
-                    #logging.info('[{}:{}) {}-gram_idx={} \'{}\''.format(i, j, j-i, idx, ngram))
-        return snt
-
-
-    def add_pad(self, batch_ctx, batch_msk):
-        max_len = max([len(x) for x in batch_ctx])
-        #logging.info('max_len={} lens: {}'.format(max_len, [len(x) for x in batch_ctx]))
-        for k in range(len(batch_ctx)):
-            addn = max_len - len(batch_ctx[k])
-            batch_ctx[k] += [self.idx_pad]*addn
-            batch_msk[k] += [False]*addn
-            #print(len(batch_ctx[k]),batch_ctx[k])
-        return batch_ctx, batch_msk
-
-
-
-
-
     def __iter__(self):
         ######################################################
         ### word-similarity word-vectors #####################
@@ -179,7 +83,7 @@ class Dataset():
             first_index = 0
             while first_index < len(self.indexs):
                 indexs_shard, first_index = self.get_shard(first_index) # indexs_shard contains a subset of the indexs stored in self.indexs
-                examples = self.get_examples(indexs_shard)
+                examples = self.get_examples_snt(indexs_shard)
                 batchs = self.get_batchs_snt(examples)
                 indexs_batchs = [i for i in range(len(batchs))]
                 #no need to shuffle! random.shuffle(indexs_batchs)
@@ -214,8 +118,7 @@ class Dataset():
         next_index = min(first_index + self.shard_size, len(self.indexs))
         indexs_shard = self.indexs[first_index:next_index]
         logging.info('built shard with {} out of {} sentences [{}, {})'.format(len(indexs_shard), len(self.indexs), first_index, next_index))
-        first_index = next_index
-        return indexs_shard, first_index
+        return indexs_shard, next_index
 
 
     def get_examples(self, indexs_shard):
@@ -325,6 +228,98 @@ class Dataset():
             batch_snt, batch_msk = self.add_pad(batch_snt, batch_msk)
             batchs.append([batch_snt, batch_msk, batch_ind])
         return batchs
+
+    def get_ctx_neg(self, idxs, center):
+        toks = [self.vocab[idxs[i]] for i in range(len(idxs))]
+        #logging.info('center={}:{} {}'.format(center, toks[center], ' '.join(toks)))
+
+        if self.window > 0:
+            beg = max(center - self.window, 0)
+            end = min(center + self.window + 1, len(idxs))
+        else:
+            beg = 0
+            end = len(idxs)
+
+        ###
+        ### find all ngrams
+        ###
+        ctx = []
+        for i in range(beg, end): 
+            if i == center:
+                continue
+            if idxs[i] == self.idx_unk:
+                continue
+
+            self.total_ngrams[1] += 1
+
+            ctx.append(idxs[i])
+            #logging.info('[{}] 1-gram_idx={} \'{}\''.format(i, idxs[i], toks[i]))
+
+            for j in range(i+2,i+self.voc_maxn+1): 
+                if j > len(idxs):
+                    break
+                if center>=i and center<j:
+                    break
+                if self.idx_unk in idxs[i:j]:
+                    break
+
+                ngram = ' '.join([str(k) for k in idxs[i:j]])
+                idx = self.vocab[ngram]
+                if idx != self.idx_unk:
+                    ctx.append(idx)
+                    self.total_ngrams[j-i] += 1
+
+                    #logging.info('[{}:{}) {}-gram_idx={} \'{}\''.format(i, j, j-i, idx, ngram))
+
+        ###
+        ### find Negative words
+        ###
+        neg = []
+        while len(neg) < self.n_negs:
+            idx = random.randint(2, self.vocab_size-2) #do not consider idx=0 (pad) nor idx=1 (unk)
+            if idx != idxs[center] and idx not in ctx:
+                neg.append(idx)
+
+        return ctx, neg
+
+    def get_snt(self, idxs):
+        toks = [self.vocab[idxs[i]] for i in range(len(idxs))]
+        #logging.info('center={}:{} {}'.format(center, toks[center], ' '.join(toks)))
+        beg = 0
+        end = len(idxs)
+        ###
+        ### find all ngrams
+        ###
+        snt = []
+        for i in range(beg, end): 
+            if idxs[i] == self.idx_unk:
+                continue
+            self.total_ngrams[1] += 1
+            snt.append(idxs[i])
+            #logging.info('[{}] 1-gram_idx={} \'{}\''.format(i, idxs[i], toks[i]))
+            for j in range(i+2,i+self.voc_maxn+1): 
+                if j > len(idxs):
+                    break
+                if self.idx_unk in idxs[i:j]:
+                    break
+                ngram = ' '.join([str(k) for k in idxs[i:j]])
+                idx = self.vocab[ngram]
+                if idx != self.idx_unk:
+                    snt.append(idx)
+                    self.total_ngrams[j-i] += 1
+                    #logging.info('[{}:{}) {}-gram_idx={} \'{}\''.format(i, j, j-i, idx, ngram))
+        return snt
+
+
+    def add_pad(self, batch_ctx, batch_msk):
+        max_len = max([len(x) for x in batch_ctx])
+        #logging.info('max_len={} lens: {}'.format(max_len, [len(x) for x in batch_ctx]))
+        for k in range(len(batch_ctx)):
+            addn = max_len - len(batch_ctx[k])
+            batch_ctx[k] += [self.idx_pad]*addn
+            batch_msk[k] += [False]*addn
+            #print(len(batch_ctx[k]),batch_ctx[k])
+        return batch_ctx, batch_msk
 
 
     def SubSample(self, sum_counts):
