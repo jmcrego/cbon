@@ -157,7 +157,7 @@ def do_word_vectors(args):
                     chk.append(wrd)
 
                 print('{}\t{}'.format(' '.join(chk), ' '.join(vector) ))
-            print('\n')
+            print('')
 
 
 def do_word_similarity(args):
@@ -210,7 +210,7 @@ def do_word_similarity(args):
                     chk.append(wrd)
 
                 out = []
-                out.append("{}:{}".format(wrd_i,chk))
+                out.append("{}:{}".format(wrd_i,' '.join(chk)))
                 dist_wrd_voc = distance(wrd_e.unsqueeze(0),voc_e) ### distance between this word_e to all words in voc
                 mininds = torch.argsort(dist_wrd_voc,dim=0,descending=True)
                 for k in range(1,len(mininds)):
@@ -219,16 +219,17 @@ def do_word_similarity(args):
                         dist = dist_wrd_voc[ind].item()
                         wrd = vocab[ind]
                         WRD = wrd.split(' ')
-                        res = []
+                        chk = []
                         if len(WRD) > 1:
                             for w in WRD:
-                                res.append(vocab[int(w)])
+                                chk.append(vocab[int(w)])
                         else:
-                            res.append(wrd)
-                        out.append("{:.6f}:{}:{}".format(dist,ind,' '.join(res)))
+                            chk.append(wrd)
+                        out.append("{:.6f}:{}:{}".format(dist,ind,' '.join(chk)))
                         if len(out)-1 == args.k:
                             break
                 print('\t'.join(out))
+        print('')
 
 
 ################################################################
