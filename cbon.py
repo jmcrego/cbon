@@ -157,6 +157,7 @@ def do_word_vectors(args):
                     chk.append(wrd)
 
                 print('{}\t{}'.format(' '.join(chk), ' '.join(vector) ))
+            print('\n')
 
 
 def do_word_similarity(args):
