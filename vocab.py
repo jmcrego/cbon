@@ -50,7 +50,7 @@ class Vocab():
         for tok in self.idx_to_tok:
             f.write(tok+'\n')
         f.close()
-        logging.info('written vocab ({} entries) into {}'.format(len(self.idx_to_tok), file))
+        logging.info('written vocab ({} entries, max_ngram={} use_bos_eos={}) into {}'.format(len(self.idx_to_tok), self.max_ngram, self.use_bos_eos, file))
 
     def build(self,files,token,min_freq=5,max_size=0,max_ngram=1,use_bos_eos=False):
         self.max_ngram = max_ngram

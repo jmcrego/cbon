@@ -98,6 +98,7 @@ def do_sentence_vectors(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.voc_maxn = vocab.max_ngram
+    args.use_bos_eos = vocab.use_bos_eos
     model, _ = load_model(args.name, vocab)
     if args.cuda:
         model.cuda()
@@ -131,6 +132,7 @@ def do_word_vectors(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.voc_maxn = vocab.max_ngram
+    args.use_bos_eos = vocab.use_bos_eos
     model, _ = load_model(args.name, vocab)
     if args.cuda:
         model.cuda()
@@ -138,14 +140,23 @@ def do_word_vectors(args):
     dataset = Dataset(args, token, vocab)
     with torch.no_grad():
         model.eval()
-        for batch in dataset:
+        for batch in dataset: ### batch contains ngrams of one entire sentence
             batch_i = batch[0]
             batch_e = model.WordEmbed(batch_i, 'iEmb')
             for i in range(len(batch_e)):
                 wrd_i = batch_i[i]
                 wrd_e = batch_e[i]
                 vector = ["{:.6f}".format(v) for v in wrd_e]
-                print('{}\t{}'.format(wrd_i, ' '.join(vector) ))
+                wrd = vocab[wrd_i]
+                chk = []
+                if wrd.find(' ') > 0:
+                    wrds_i = map(int, wrd.split(' '))
+                    for wrd_i in wrds_i:
+                        chk.append(vocab[wrd_i])
+                else:
+                    chk.append(wrd)
+
+                print('{}\t{}'.format(' '.join(chk), ' '.join(vector) ))
 
 
 def do_word_similarity(args):
@@ -279,7 +290,7 @@ class Args():
    -save_every      INT : save checkpoint every n learning steps    (5000)
    -report_every    INT : print report every n learning steps       (500)
  -------- When inference -----------------------------------------------------
-   -k               INT : find k closest words to each word in file (5)
+   -k               INT : find k closest words to each file ngram   (5)
    -sim          STRING : cos, pairwise                             (cos)
 
 *** The script needs:

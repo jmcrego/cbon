@@ -61,17 +61,13 @@ class Dataset():
         ### word-similarity word-vectors #####################
         ######################################################
         if self.mode == 'word-similarity' or self.mode == 'word-vectors':
-            ### traverse sentences word by word (no shuffle no shards needed)
-            batch_wrd = []
+            ### traverse sentences by sentence (no shuffle needed)
             for ind in range(len(self.corpus)):
-                for wrd in self.corpus[ind]:
-                    batch_wrd.append(wrd)
-                    ### batch filled
-                    if len(batch_wrd) == self.batch_size:
-                        yield [batch_wrd]
-                        batch_wrd = []
-            if len(batch_wrd):
-                yield [batch_wrd]
+                batch_ngram = []
+                snt = self.get_snt(self.corpus[ind]) #[idx, idx, ...]
+                for ngram in snt:
+                    batch_ngram.append(ngram)
+                yield [batch_ngram] ### a batch contains all ngrams in one sent
 
         ######################################################
         ### sentence-vectors #################################
@@ -146,7 +142,7 @@ class Dataset():
     def get_examples_snt(self, indexs_shard):
         examples = [] ### ind (position in corpus), wrd (word to predict or empty), neg (n negative words or empty), ctx (context or sentence)
         for ind in indexs_shard:
-            snt = self.get_snt(self.corpus[ind]) #[idx, idx, ...], [i]
+            snt = self.get_snt(self.corpus[ind]) #[idx, idx, ...]
             e = []
             #logging.info('ind: {}'.format(ind))
             #logging.info('snt: {}'.format(snt))
