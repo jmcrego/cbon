@@ -175,6 +175,7 @@ def do_word_similarity(args):
     vocab = Vocab()
     vocab.read(args.name + '.vocab')
     args.voc_maxn = vocab.max_ngram
+    args.use_bos_eos = vocab.use_bos_eos    
     model, _ = load_model(args.name, vocab)
     if args.cuda:
         model.cuda()
@@ -197,10 +198,19 @@ def do_word_similarity(args):
             batch_e = model.WordEmbed(batch_i, 'iEmb')
             for i in range(len(batch_i)):
                 wrd_i = batch_i[i]
-                wrd = vocab[wrd_i]
                 wrd_e = batch_e[i]
+
+                wrd = vocab[wrd_i]
+                chk = []
+                if wrd.find(' ') > 0:
+                    wrds_i = map(int, wrd.split(' '))
+                    for wrd_i in wrds_i:
+                        chk.append(vocab[wrd_i])
+                else:
+                    chk.append(wrd)
+
                 out = []
-                out.append("{}:{}".format(wrd_i,wrd))
+                out.append("{}:{}".format(wrd_i,chk))
                 dist_wrd_voc = distance(wrd_e.unsqueeze(0),voc_e) ### distance between this word_e to all words in voc
                 mininds = torch.argsort(dist_wrd_voc,dim=0,descending=True)
                 for k in range(1,len(mininds)):
