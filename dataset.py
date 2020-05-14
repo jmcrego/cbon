@@ -6,7 +6,6 @@ import os
 import io
 import math
 import glob
-#import gzip
 import random
 import itertools
 import pyonmttok
@@ -16,8 +15,9 @@ from utils import open_read
 
 class Dataset():
 
-    def __init__(self, args, token, vocab, skip_subsampling=False):
+    def __init__(self, args, token, vocab):
         self.vocab = vocab
+        self.use_bos_eos = args.use_bos_eos
         self.batch_size = args.batch_size
         self.window = args.window
         self.n_negs = args.n_negs
@@ -38,6 +38,10 @@ class Dataset():
                 if is_gzip:
                     l = l.decode('utf8')
                 toks = token.tokenize(l.strip(' \n'))
+                if self.use_bos_eos:
+                    toks.insert(0,'<bos>')
+                    toks.append('<eos>')
+
                 idxs = []
                 for tok in toks:
                     idx = vocab[tok]
@@ -50,11 +54,6 @@ class Dataset():
             f.close()
         pOOV = 100.0 * nOOV / ntokens
         logging.info('read {} sentences with {} tokens (%OOV={:.2f})'.format(len(self.corpus), ntokens, pOOV))
-
-        ### subsample
-        #if not skip_subsampling:
-        #    ntokens = self.SubSample(ntokens)
-        #    logging.info('subsampled to {} tokens'.format(ntokens))
 
 
     def __iter__(self):
@@ -148,9 +147,8 @@ class Dataset():
         examples = [] ### ind (position in corpus), wrd (word to predict or empty), neg (n negative words or empty), ctx (context or sentence)
         for ind in indexs_shard:
             snt = self.get_snt(self.corpus[ind]) #[idx, idx, ...], [i]
-#            if len(snt)==0: # at least one ngram in snt
-#                continue
             e = []
+            #logging.info('ind: {}'.format(ind))
             #logging.info('snt: {}'.format(snt))
             e.append(ind) #position in corpus
             e.extend(snt) #ngrams in sentence
@@ -163,7 +161,7 @@ class Dataset():
 
     def get_batchs(self, examples):
         ### sort examples by len
-        logging.info('sorting examples in shard by number of ngrams to minimize padding')
+        logging.info('sorting examples in shard (by length) to minimize padding')
         length = [len(examples[k]) for k in range(len(examples))] #length of sentences in this shard
         index_examples = np.argsort(np.array(length)) ### These are indexs of examples
 
@@ -322,8 +320,12 @@ class Dataset():
         return batch_ctx, batch_msk
 
 
+
+
+
+
+
     def SubSample(self, sum_counts):
-#        wrd2n = dict(Counter(list(itertools.chain.from_iterable(self.corpus))))
         wrd2p_keep = {}
         for wrd in self.wrd2n:
             p_wrd = float(self.wrd2n[wrd]) / sum_counts ### proportion of the word
@@ -343,7 +345,6 @@ class Dataset():
         return ntokens
 
     def NegativeSamples(self):
-#        wrd2n = dict(Counter(list(itertools.chain.from_iterable(self.corpus))))
         normalizing_factor = sum([v**0.75 for v in self.wrd2n.values()])
         sample_probability = {}
         for wrd in self.wrd2n:
