@@ -139,7 +139,7 @@ class Vocab():
         chk = []
         if len(WRD) > 1:
             for w in WRD:
-                chk.append(self.vocab[int(w)])
+                chk.append(self.idx_to_tok[int(w)])
         else:
             chk.append(wrd)
         return ' '.join(chk)
