@@ -199,33 +199,15 @@ def do_word_similarity(args):
             for i in range(len(batch_i)):
                 wrd_i = batch_i[i]
                 wrd_e = batch_e[i]
-
-                wrd = vocab[wrd_i]
-                chk = []
-                if wrd.find(' ') > 0:
-                    wrds_i = map(int, wrd.split(' '))
-                    for wrd_i in wrds_i:
-                        chk.append(vocab[wrd_i])
-                else:
-                    chk.append(wrd)
-
                 out = []
-                out.append("{}:{}".format(wrd_i,' '.join(chk)))
+                out.append("{}:{}".format(wrd_i,vocab.strngram(wrd_i)))
                 dist_wrd_voc = distance(wrd_e.unsqueeze(0),voc_e) ### distance between this word_e to all words in voc
                 mininds = torch.argsort(dist_wrd_voc,dim=0,descending=True)
                 for k in range(1,len(mininds)):
                     ind = mininds[k].item() #cpu().detach().numpy()
                     if i != ind:
                         dist = dist_wrd_voc[ind].item()
-                        wrd = vocab[ind]
-                        WRD = wrd.split(' ')
-                        chk = []
-                        if len(WRD) > 1:
-                            for w in WRD:
-                                chk.append(vocab[int(w)])
-                        else:
-                            chk.append(wrd)
-                        out.append("{:.6f}:{}:{}".format(dist,ind,' '.join(chk)))
+                        out.append("{:.6f}:{}:{}".format(dist,ind,vocab.strngram(ind)))
                         if len(out)-1 == args.k:
                             break
                 print('\t'.join(out))

@@ -117,11 +117,39 @@ class Vocab():
             if s not in self:
                 logging.error("key \'{}\' not found in vocab".format(s))
                 sys.exit()
+            ### s exists in self.idx_to_tok
             return self.idx_to_tok[s]
         ### input is a string, i want the index
         if s not in self: 
             return self.idx_unk
         return self.tok_to_idx[s]
+
+
+    def strngram(self, s, sep=' '): ### implementation of the method used when invoking : vocab[entry]
+        if type(s) != int: ### input is an index, i want the string
+            logging.error("key \'{}\' is not int".format(s))
+            sys.exit()
+
+        if s not in self:
+            logging.error("key \'{}\' not found in vocab".format(s))
+            sys.exit()
+
+        wrd = self.idx_to_tok[s]
+        WRD = wrd.split(' ')
+        chk = []
+        if len(WRD) > 1:
+            for w in WRD:
+                chk.append(vocab[int(w)])
+        else:
+            chk.append(wrd)
+        return ' '.join(chk)
+
+
+
+
+
+
+
 
 
 
